@@ -5,9 +5,9 @@
 A short description of what your CLI application does.
 
 ### Authors
-* Author 1
-* Author 2
-* Author 3
+* Eliott JAQUIER
+* Shanshe GUNDISHVILI
+* Aurélien DEVAUD
 
 ---
 
@@ -15,8 +15,8 @@ A short description of what your CLI application does.
 
 ```sh
 # Clone repository
-git clone <repository-url>
-cd <repository-directory>
+git clone https://github.com/Neliott/nnls.git
+cd nnls
 
 # Build the executable JAR and run tests
 ./mvnw clean package
