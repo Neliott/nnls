@@ -5,17 +5,18 @@
 ### 1. Language & Naming Conventions
 
 * **Language:** All comments, variable names, class names, documentation, and commit messages must be in **English**.
-* **Variables & Methods:** Use **lowerCamelCase** (e.g., `inputFile`, `processData()`).
-* **Classes & Interfaces:** Use **PascalCase** (e.g., `TextProcessor`, `CommandOne`).
-* **Constants:** Use **UPPER_SNAKE_CASE** (e.g., `DEFAULT_BUFFER_SIZE`, `DEFAULT_CHARSET`).
-* **Packages:** Use **lowercase** reverse domain notation (e.g., `ch.heigvd`, `ch.heigvd.commands`).
+* **Variables & Methods:** Use **lowerCamelCase** (e.g., `roomCode`, `handleMessage()`, `currentChecksum`).
+* **Classes & Interfaces:** Use **PascalCase** (e.g., `ProtocolHandler`, `RoomManager`, `TcpServer`).
+* **Constants:** Use **UPPER_SNAKE_CASE** (e.g., `DEFAULT_PORT`, `DEFAULT_CHARSET`).
+* **Packages:** Use **lowercase** reverse domain notation (e.g., `ch.heigvd`, `ch.heigvd.protocol`, `ch.heigvd.server`).
 
 ### 2. Formatting & Structure
 
 * **Indentation:** Consistent use of **2 or 4 spaces** per level (no tabs).
 * **Line Length:** Avoid excessively long lines (> 100-120 characters).
-* **Resource Management:** Always use `try-with-resources` when dealing with I/O streams, readers, and writers to prevent resource leaks.
-* **Separation of Concerns:** Keep core data processing strictly separate from CLI parsing and file system operations to allow seamless unit testing with in-memory streams (`Reader`/`Writer`, `InputStream`/`OutputStream`).
+* **Resource Management:** Always use `try-with-resources` when managing sockets, I/O streams, readers, and writers to guarantee resources are released on disconnection or error (criterion 17).
+* **Separation of Concerns:** Keep the application protocol logic strictly separate from the network code. Message handling must take input strings and return response strings without holding direct references to network sockets, enabling pure in-memory unit testing (criterion 21).
+* **Concurrency & Thread Safety:** All mutable shared state accessed by multiple client handlers (e.g., rooms, documents) must be thread-safe using concurrent collections or synchronized critical sections (criterion 20).
 
 ### 3. Documentation
 
@@ -56,7 +57,7 @@ To indicate a *MAJOR* change in [semantic versioning](https://semver.org/#summar
 
 ### Commit Signing
 
-All commits should be cryptographically signed using GPG or SSH (`git commit -S`) to ensure authenticity (course criterion 9).
+All commits should be cryptographically signed using GPG or SSH (`git commit -S`) to ensure authenticity (PW2 general rules).
 
 ---
 
@@ -66,9 +67,10 @@ When opening or reviewing a Pull Request:
 
 1. **Build & Tests:** The branch must compile cleanly (`./mvnw clean package`) and all JUnit tests must pass (`./mvnw test`).
 2. **Commit History:** Ensure commit messages follow Conventional Commits and are signed.
-3. **I/O Standards:**
-   - Are streams buffered?
-   - Is character encoding explicitly specified where applicable?
-   - Are resources properly enclosed in `try-with-resources`?
-   - Are error messages user-friendly and explicit?
-4. **Testing:** Does the PR include automated unit tests covering typical and edge cases?
+3. **Protocol & Concurrency Standards:**
+   - Is protocol logic isolated from socket/network dependencies?
+   - Are shared state modifications thread-safe (e.g., synchronized room state)?
+   - Are network sockets and streams enclosed in `try-with-resources`?
+   - Is character encoding explicitly set to UTF-8?
+   - Are error messages user-friendly and explicit on invalid input or network issues?
+4. **Testing:** Does the PR include automated unit tests covering nominal scenarios, error handling, and invalid inputs?
