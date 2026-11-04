@@ -1,8 +1,10 @@
-# DAI - Practical Work 1: File Processing CLI
+# DAI - Practical Work 2: CDSP (Collaborative Diff Synchronization Protocol)
 
 ## Description
 
-A short description of what your CLI application does.
+CDSP is a client-server network application providing real-time collaborative text file synchronization across multiple users organized into virtual rooms. Instead of retransmitting entire documents on every edit, the client calculates and sends incremental line diffs (`INSERT`, `DELETE`, `CHANGE`), while the central server handles concurrent updates and ensures document consistency via SHA-256 checksum validation.
+
+The full protocol specification is documented in [PROTOCOL.md](PROTOCOL.md).
 
 ### Authors
 * Eliott JAQUIER
