@@ -42,6 +42,10 @@ Commands transmitting file modifications (`PUSH`) or full state (`JOIN`, `PULL`,
 * *Full document representation:* Formatted as a single `INSERT` at position `0`: `[{"type":"INSERT","pos":0,"size":0,"lines":["L1","L2"]}]`.
 * *Empty document:* `[]`.
 
+> **Design Note on `size = 0` for `INSERT`:** In java-diff-utils, `size` refers strictly to the **number of lines consumed from the original document**. Because an `INSERT` purely adds lines without deleting or replacing any pre-existing lines, `size` is intentionally and strictly `0` by design, even if we add multiple lines. 
+
+> So, when transmitting a full document state as an initial `INSERT` at position `0` (`[{"type":"INSERT","pos":0,"size":0,"lines":["L1","L2"]}]`), `size` is deliberately `0` because no prior lines are being overwritten.
+
 ---
 
 ### 3.2 Commands & Responses
