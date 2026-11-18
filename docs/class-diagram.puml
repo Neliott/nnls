@@ -1,0 +1,179 @@
+@startuml class-diagram
+skinparam monochrome false
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+title NNLS (Not Live Share) - High-Level Class Diagram
+
+' ================= EXTERNAL LIBRARIES =================
+enum DeltaType <<external (java-diff-utils)>> {
+    INSERT
+    DELETE
+    CHANGE
+}
+
+' ================= COMMON LAYER =================
+package "common" {
+
+    class NetworkDelta <<record>> {
+        + type: DeltaType
+        + pos: int
+        + size: int
+        + lines: List<String>
+    }
+
+    class DiffEngine {
+        + {static} computeSha256(lines: List<String>): String
+        + {static} computeDeltas(original: List<String>, revised: List<String>): List<NetworkDelta>
+        + {static} applyDeltas(original: List<String>, deltas: List<NetworkDelta>): List<String>
+        + {static} serializeDeltas(deltas: List<NetworkDelta>): String
+        + {static} deserializeDeltas(json: String): List<NetworkDelta>
+    }
+
+    NetworkDelta --> DeltaType
+    DiffEngine ..> NetworkDelta : maps & formats
+}
+
+' ================= SERVER SIDE =================
+package "server" {
+
+    class Room {
+        - roomCode: String
+        - filename: String
+        - lines: List<String>
+        - checksum: String
+        + Room(roomCode: String, filename: String)
+        + synchronized applyPatch(prevChecksum: String, deltas: List<NetworkDelta>): boolean
+        + synchronized getLines(): List<String>
+        + getRoomCode(): String
+        + getFilename(): String
+        + getChecksum(): String
+    }
+
+    class RoomManager {
+        - rooms: ConcurrentMap<String, Room>
+        + createRoom(filename: String): Room
+        + getRoom(roomCode: String): Optional<Room>
+        + removeRoom(roomCode: String): boolean
+    }
+
+    class ServerSession {
+        - roomManager: RoomManager
+        - currentRoom: Room
+        + ServerSession(roomManager: RoomManager)
+        + handleMessage(requestLine: String): String
+    }
+
+    class TcpServer {
+        - port: int
+        - threadPoolSize: int
+        - roomManager: RoomManager
+        + TcpServer(port: int, threadPoolSize: int)
+        + start(): void
+        + stop(): void
+    }
+
+    class ClientHandler {
+        - socket: Socket
+        - session: ServerSession
+        + ClientHandler(socket: Socket, session: ServerSession)
+        + run(): void
+    }
+
+    RoomManager "1" *-- "0..*" Room : manages
+    Room ..> DiffEngine : applies deltas & hashes
+    ServerSession o-- RoomManager : queries / updates
+    ServerSession o-- Room : tracks active room
+    ServerSession ..> DiffEngine : serializes state
+    TcpServer --> RoomManager : shares
+    TcpServer *-- ClientHandler : dispatches
+    ClientHandler *-- ServerSession : routes requests
+}
+
+' ================= CLIENT SIDE =================
+package "client" {
+
+    class TcpClient {
+        - host: String
+        - port: int
+        + connect(): void
+        + sendRequest(request: String): String
+        + isConnected(): boolean
+        + close(): void
+    }
+
+    class ClientState {
+        - localPath: Path
+        - syncedLines: List<String>
+        - currentChecksum: String
+        + ClientState(localPath: Path)
+        + readLocalLines(): List<String>
+        + writeLocalLines(lines: List<String>): void
+        + computeLocalDiff(): List<NetworkDelta>
+        + acceptRemote(remoteLines: List<String>, validChecksum: String): void
+        + keepLocalAndRebase(remoteLines: List<String>, validChecksum: String): void
+        + updateSyncedState(lines: List<String>, checksum: String): void
+        + getLocalPath(): Path
+        + getCurrentChecksum(): String
+    }
+
+    class ClientRepl {
+        - client: TcpClient
+        - state: ClientState
+        + ClientRepl(host: String, port: int)
+        + start(): void
+    }
+
+    ClientState ..> DiffEngine : diffs & hashes
+    ClientRepl *-- TcpClient : transport
+    ClientRepl *-- ClientState : local state
+    ClientRepl ..> DiffEngine : diffs & serialization
+}
+
+' ================= CLI / ENTRYPOINT =================
+class Main {
+    + {static} main(args: String[]): void
+}
+
+class ServerCommand {
+    - port: int
+    - threads: int
+    + run(): void
+}
+
+class ClientCommand {
+    - host: String
+    - port: int
+    + run(): void
+}
+
+Main -- ServerCommand
+Main -- ClientCommand
+ServerCommand ..> TcpServer : configures & starts
+ClientCommand ..> ClientRepl : configures & starts
+
+
+' Network Boundary
+TcpClient .right.> TcpServer : TCP Stream (Port 4242, UTF-8, "\\n")
+
+' ================= NOTES =================
+note right of ServerSession
+  <b>Decoupled from Sockets (Critère 21):</b>
+  Takes a raw string line, parses it, and returns a response string.
+  100% unit-testable with JUnit 5 without opening any network port.
+end note
+
+note right of Room
+  <b>Thread-Safe Concurrency (Critère 20):</b>
+  Synchronized methods ensure atomic patch application
+  and hash updates, preventing concurrent edit collisions.
+end note
+
+note bottom of ClientState
+  Groups disk file I/O, synced memory baseline,
+  and local conflict reconciliation strategies.
+end note
+
+@enduml
