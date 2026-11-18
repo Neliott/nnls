@@ -17,7 +17,7 @@ Instead of transmitting entire files upon each edit, NNLSP exchanges incremental
 
 * **Transport Protocol:** TCP.
 * **Justification:** Incremental diff patching requires strict in-order and lossless delivery; any lost or reordered diff corrupts the document. TCP also provides reliable connection lifecycle tracking (detecting client disconnection to clean up session resources).
-* **Default Port:** `4242` (configurable on client and server via `picocli` CLI options).
+* **Default Port:** `4242`.
 * **Encoding:** `UTF-8`, because `java-diff-utils` is text based (binary is out of the scope of this project).
 * **Framing (End of Message):** Every request and response is a single line terminated by a Line Feed (`\n`).
   * Parameters are space-separated.
@@ -50,15 +50,15 @@ Commands transmitting file modifications (`PUSH`) or full state (`JOIN`, `PULL`,
 
 ### 3.2 Commands & Responses
 
-#### `CREATE <version> <filename>`
+#### `CREATE <filename>`
 Creates a new room with an empty document (checksum `"0"`) and joins it.
-* **Arguments:** `<version>` = `1`; `<filename>` = filename without spaces.
+* **Arguments:** `<filename>` = filename without spaces.
 * **Success:** `OK <roomCode>` (where `<roomCode>` is a unique 5-character alphanumeric ID, e.g. `OK A7B9X`).
 * **Errors:** `ERROR 2 INVALID_STATE` (already in a room), `ERROR 5 BAD_ARGUMENTS`.
 
-#### `JOIN <version> <roomCode>`
+#### `JOIN <roomCode>`
 Joins an existing room and retrieves the current document state.
-* **Arguments:** `<version>` = `1`; `<roomCode>` = target room identifier.
+* **Arguments:** `<roomCode>` = target room identifier.
 * **Success:** `OK <filename> <currentChecksum> <jsonFullState>`
 * **Errors:** `ERROR 2 INVALID_STATE` (already in a room), `ERROR 3 ROOM_NOT_FOUND`, `ERROR 5 BAD_ARGUMENTS`.
 
@@ -95,7 +95,7 @@ All errors follow the format: `ERROR <code> <reason> [optional_data]\n`
 | `2` | `INVALID_STATE` | Command sent out of sequence (e.g. `PUSH` before `JOIN`, or `CREATE` when already in a room). |
 | `3` | `ROOM_NOT_FOUND` | Specified `<roomCode>` does not exist on the server. |
 | `4` | `OUTDATED_CHECKSUM` | Conflict on `PUSH`: `<prevChecksum>` differs from the server's checksum. Appends `<validChecksum> <jsonFullState>`. |
-| `5` | `BAD_ARGUMENTS` | Missing arguments, wrong version, malformed JSON, or invalid diff bounds. |
+| `5` | `BAD_ARGUMENTS` | Missing arguments, malformed JSON, or invalid diff bounds. |
 
 ---
 
@@ -109,13 +109,13 @@ sequenceDiagram
     participant ClientB as Client B (Guest)
 
     Note over ClientA, Server: 1. Room Creation & Initial Upload
-    ClientA->>Server: CREATE 1 notes.txt\n
+    ClientA->>Server: CREATE notes.txt\n
     Server-->>ClientA: OK A7B9X\n
     ClientA->>Server: PUSH 0 [{"type":"INSERT","pos":0,"size":0,"lines":["Hello","World"]}]\n
     Server-->>ClientA: OK chk_v1\n
 
     Note over Server, ClientB: 2. Client B Joins Room
-    ClientB->>Server: JOIN 1 A7B9X\n
+    ClientB->>Server: JOIN A7B9X\n
     Server-->>ClientB: OK notes.txt chk_v1 [{"type":"INSERT","pos":0,"size":0,"lines":["Hello","World"]}]\n
 
     Note over ClientA, Server: 3. Client A Edits Line 1 ("World" -> "DAI")
@@ -149,7 +149,7 @@ sequenceDiagram
     Server-->>ClientB: ERROR 2 INVALID_STATE\n
 
     Note over Server, ClientB: 2. Non-existent Room
-    ClientB->>Server: JOIN 1 WRONG99\n
+    ClientB->>Server: JOIN WRONG99\n
     Server-->>ClientB: ERROR 3 ROOM_NOT_FOUND\n
 
     Note over ClientA, ClientB: 3. Concurrent Edits from chk_v1
