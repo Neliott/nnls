@@ -24,14 +24,14 @@ cd nnls
 ./mvnw clean package
 ```
 
-The executable JAR is generated under `target/dai-pw1-1.0-SNAPSHOT.jar`.
+The executable JAR is generated under `target/nnls-1.0-SNAPSHOT.jar`.
 
 ---
 
 ## Usage
 
 ```sh
-java -jar target/dai-pw1-1.0-SNAPSHOT.jar --help
+java -jar target/nnls-1.0-SNAPSHOT.jar --help
 ```
 
 ### Subcommands

@@ -11,7 +11,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.ScopeType;
 
 @Command(
-    name = "dai-pw1",
+    name = "nnls",
     description = "Process an input file and write the result to an output file.",
     version = "1.0.0",
     showDefaultValues = true,
@@ -65,7 +65,7 @@ public class Main {
   }
 
   public static void main(String[] args) {
-    String jarFilename = "dai-pw1.jar";
+    String jarFilename = "nnls.jar";
     try {
       File location = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
       if (location.isFile()) {
