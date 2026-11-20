@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 import java.security.MessageDigest;
@@ -34,7 +35,7 @@ public class DiffEngine {
             int chunkSize = switch (delta.getType()){
                 case INSERT -> 0;
                 case DELETE -> delta.getSource().size();
-                case CHANGE -> chunk.size();
+                case CHANGE -> delta.getSource().size();
                 default -> throw new RuntimeException("Trying to apply a patch with a delta of unsupported type.");
             };
             networkDeltas.add(new NetworkDelta(
@@ -49,31 +50,23 @@ public class DiffEngine {
     }
 
     public static List<String> applyDeltas(List<String> original, List<NetworkDelta> deltas) throws PatchFailedException {
-        //reconstruct the patch
-        Patch<String> patch = new Patch<>(deltas.size());
+        //using DiffUtils here would mean having to reconstruct the source chunk,
+        // it is easier, thus, to remake the logic
+        ArrayList<String> revised = new ArrayList<String>(original);
 
         for (NetworkDelta delta : deltas){
-            patch.addDelta(switch (delta.type){
-                case CHANGE -> new ChangeDelta<>(
-                        new Chunk<>(
-                                delta.pos,
-                                List.copyOf(original.subList(delta.pos, delta.pos + delta.size))),
-                        new Chunk<>(delta.pos, delta.lines));
-                case DELETE -> new DeleteDelta<>(
-                        new Chunk<>(
-                                delta.pos,
-                                List.copyOf(original.subList(delta.pos, delta.pos + delta.size))),
-                        new Chunk<>(delta.pos, delta.lines));
-                case INSERT -> new InsertDelta<>(
-                        new Chunk<>(
-                                delta.pos,
-                                List.of()),
-                        new Chunk<>(delta.pos, delta.lines));
+            switch (delta.type){
+                case CHANGE -> {
+                    revised.subList(delta.pos, delta.pos + delta.size).clear();
+                    revised.addAll(delta.pos, delta.lines);
+                }
+                case DELETE -> revised.subList(delta.pos, delta.pos + delta.size).clear();
+                case INSERT -> revised.addAll(delta.pos, delta.lines);
                 default -> throw new RuntimeException("Trying to apply a patch with a delta of unsupported type.");
-            });
+            }
         }
 
-        return DiffUtils.patch(original, patch);
+        return revised;
     }
 
     public static String serializeDeltas(List<NetworkDelta> deltas){
