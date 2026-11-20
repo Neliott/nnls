@@ -1,5 +1,7 @@
 ﻿package ch.heigvd.common;
 
+import com.github.difflib.patch.AbstractDelta;
+import com.github.difflib.patch.Chunk;
 import jdk.jshell.spi.ExecutionControl;
 
 import com.github.difflib.DiffUtils;
@@ -8,6 +10,7 @@ import com.google.gson.Gson;
 
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.security.MessageDigest;
@@ -24,8 +27,16 @@ public class DiffEngine {
     }
 
     public static List<NetworkDelta> computeDeltas(List<String> original, List<String> revised){
-        // https://java-diff-utils.github.io/java-diff-utils/4.10/docs/apidocs/
-        throw new ExecutionControl.NotImplementedException("computeDeltas not implemented");
+        Patch<String> patch = DiffUtils.diff(original, revised);
+        List<AbstractDelta<String>> deltas = patch.getDeltas();
+        List<NetworkDelta> networkDeltas = new ArrayList<>();
+
+        for (AbstractDelta<String> delta : deltas){
+            Chunk<String> chunk = deltas.getFirst().getTarget();
+            networkDeltas.add(new NetworkDelta(delta.getType(), chunk.getPosition(), chunk.size(), chunk.getLines()));
+        }
+
+        return networkDeltas;
     }
 
     public static List<String> applyDeltas(List<String> original, List<NetworkDelta> deltas){

@@ -8,4 +8,11 @@ public class NetworkDelta {
     public int pos;
     public int size;
     public List<String> lines;
+
+    public NetworkDelta(DeltaType type, int pos, int size, List<String> lines){
+        this.type = type;
+        this.pos = pos;
+        this.size = size;
+        this.lines = lines;
+    }
 }
