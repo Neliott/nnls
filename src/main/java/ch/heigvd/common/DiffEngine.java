@@ -6,11 +6,21 @@ import com.github.difflib.DiffUtils;
 import com.github.difflib.patch.Patch;
 import com.google.gson.Gson;
 
+import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
+import java.security.MessageDigest;
 
 public class DiffEngine {
     public static String computeSha256(List<String> lines){
-        throw new ExecutionControl.NotImplementedException("computeSha256 not implemented");
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] shaData = digest.digest(lines.toString().getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(shaData);
+        }catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static List<NetworkDelta> computeDeltas(List<String> original, List<String> revised){
