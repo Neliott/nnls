@@ -6,26 +6,26 @@ import com.github.difflib.patch.DeltaType;
 import com.github.difflib.patch.PatchFailedException;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DiffEngineTest {
 
-    static final List<String> SHORT_ORIGINAL = Arrays.asList(new String[] {"LINE1", "LINE2"});
-    static final List<String> SHORT_REVISED_FROM_ORIGINAL = Arrays.asList(new String[] {"LINE1_R", "LINE2","LINE3"});
+    static final List<String> SHORT_ORIGINAL = List.of("LINE1", "LINE2");
 
-    static final List<String> SHORT_CHANGE_FROM_ORIGINAL = Arrays.asList(new String[] {"CHANGED", "LINE2"});
-    static final List<String> SHORT_INSERT_TO_ORIGINAL = Arrays.asList(new String[] {"LINE1", "INSERTED", "LINE2"});
-    static final List<String> SHORT_DELETE_FROM_ORIGINAL = Arrays.asList(new String[] {"LINE2"});
+    static final List<String> SHORT_CHANGE_FROM_ORIGINAL = List.of("CHANGED", "LINE2");
+    static final List<String> SHORT_INSERT_INTO_ORIGINAL = List.of("LINE1", "INSERTED", "LINE2");
+    static final List<String> SHORT_DELETE_FROM_ORIGINAL = List.of("LINE2");
 
-    static final List<String> SHORT_ORIGINAL2 = Arrays.asList(new String[] {"2LINE1", "2LINE2"});
+    static final List<String> SHORT_ORIGINAL2 = List.of("2LINE1", "2LINE2");
     static final List<String> SHORT_EMPTY = List.of();
-    static final List<String> SHORT_EMPTYLINES = Arrays.asList(new String[] {"", ""});
+    static final List<String> SHORT_EMPTYLINES = List.of("", "");
 
-    static final List<String> MEDIUM_ORIGINAL = Arrays.asList(new String[] {"LINE1", "LINE2", "LINE3", "LINE4"});
-    static final List<String> MEDIUM_MULTI_CHANGE_FROM_ORIGINAL = Arrays.asList(new String[] {"CHANGED", "LINE2", "LINE3", "CHANGED"});
+    static final List<String> MEDIUM_ORIGINAL = List.of("LINE1", "LINE2", "LINE3", "LINE4");
+    static final List<String> MEDIUM_MULTI_CHANGE_FROM_ORIGINAL = List.of("CHANGED", "LINE2", "LINE3", "CHANGED");
+    static final List<String> MEDIUM_MULTI_INSERT_INTO_ORIGINAL = List.of("LINE1", "INSERTED","LINE2", "LINE3", "INSERTED", "LINE4");
+    static final List<String> MEDIUM_MULTI_DELETE_FROM_ORIGINAL = List.of("LINE1", "LINE3");
 
     @Test
     void test_computeSha256_computesTwoSameLineLists_then_areSameSHA(){
@@ -87,7 +87,7 @@ public class DiffEngineTest {
     @Test
     void test_computeDeltas_computesOriginalAndInsert_then_getInsertDelta(){
         List<NetworkDelta> expected = List.of(new NetworkDelta(DeltaType.INSERT, 1, 0, List.of("INSERTED")));
-        List<NetworkDelta> actual = DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_INSERT_TO_ORIGINAL);
+        List<NetworkDelta> actual = DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_INSERT_INTO_ORIGINAL);
 
         assertEquals(expected, actual);
     }
@@ -102,28 +102,49 @@ public class DiffEngineTest {
 
     @Test
     void test_applyDeltas_computesOriginalAndChange_apply_then_getChangedText() throws PatchFailedException {
-        List<String> expected = SHORT_CHANGE_FROM_ORIGINAL;
         List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
                 DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_CHANGE_FROM_ORIGINAL));
 
-        assertEquals(expected, actual);
+        assertEquals(SHORT_CHANGE_FROM_ORIGINAL, actual);
     }
 
     @Test
     void test_applyDeltas_computesOriginalAndInsert_apply_then_getInsertedText() throws PatchFailedException {
-        List<String> expected = SHORT_INSERT_TO_ORIGINAL;
         List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
-                DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_INSERT_TO_ORIGINAL));
+                DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_INSERT_INTO_ORIGINAL));
 
-        assertEquals(expected, actual);
+        assertEquals(SHORT_INSERT_INTO_ORIGINAL, actual);
     }
 
     @Test
     void test_applyDeltas_computesOriginalAndDelete_apply_then_getDeletedText() throws PatchFailedException {
-        List<String> expected = SHORT_DELETE_FROM_ORIGINAL;
         List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
                 DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_DELETE_FROM_ORIGINAL));
 
-        assertEquals(expected, actual);
+        assertEquals(SHORT_DELETE_FROM_ORIGINAL, actual);
+    }
+
+    @Test
+    void test_applyDeltas_multi_computesOriginalAndChange_apply_then_getChangedText() throws PatchFailedException {
+        List<String> actual = DiffEngine.applyDeltas(MEDIUM_ORIGINAL,
+                DiffEngine.computeDeltas(MEDIUM_ORIGINAL, MEDIUM_MULTI_CHANGE_FROM_ORIGINAL));
+
+        assertEquals(MEDIUM_MULTI_CHANGE_FROM_ORIGINAL, actual);
+    }
+
+    @Test
+    void test_applyDeltas_multi_computesOriginalAndInsert_apply_then_getInsertedText() throws PatchFailedException {
+        List<String> actual = DiffEngine.applyDeltas(MEDIUM_ORIGINAL,
+                DiffEngine.computeDeltas(MEDIUM_ORIGINAL, MEDIUM_MULTI_INSERT_INTO_ORIGINAL));
+
+        assertEquals(MEDIUM_MULTI_INSERT_INTO_ORIGINAL, actual);
+    }
+
+    @Test
+    void test_applyDeltas_multi_computesOriginalAndDelete_apply_then_getDeletedText() throws PatchFailedException {
+        List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
+                DiffEngine.computeDeltas(MEDIUM_ORIGINAL, MEDIUM_MULTI_DELETE_FROM_ORIGINAL));
+
+        assertEquals(MEDIUM_MULTI_DELETE_FROM_ORIGINAL, actual);
     }
 }
