@@ -1,11 +1,8 @@
 ﻿package ch.heigvd.common;
 
-import com.github.difflib.patch.AbstractDelta;
-import com.github.difflib.patch.Chunk;
-import jdk.jshell.spi.ExecutionControl;
+import com.github.difflib.patch.*;
 
 import com.github.difflib.DiffUtils;
-import com.github.difflib.patch.Patch;
 import com.google.gson.Gson;
 
 import java.nio.charset.StandardCharsets;
@@ -40,9 +37,33 @@ public class DiffEngine {
         return networkDeltas;
     }
 
-    public static List<String> applyDeltas(List<String> original, List<NetworkDelta> deltas){
-        // https://java-diff-utils.github.io/java-diff-utils/4.10/docs/apidocs/
-        throw new ExecutionControl.NotImplementedException("applyDeltas not implemented");
+    public static List<String> applyDeltas(List<String> original, List<NetworkDelta> deltas) throws PatchFailedException {
+        //reconstruct the patch
+        Patch<String> patch = new Patch<>(deltas.size());
+        Chunk<String> emptyChunk = new Chunk<String>(0, List.of());
+
+        for (NetworkDelta delta : deltas){
+            patch.addDelta(switch (delta.type){
+                case CHANGE -> new ChangeDelta<>(
+                        new Chunk<>(
+                                delta.pos,
+                                List.copyOf(original.subList(delta.pos, delta.pos + delta.size))),
+                        new Chunk<>(delta.pos, delta.lines));
+                case DELETE -> new DeleteDelta<>(
+                        new Chunk<>(
+                                delta.pos,
+                                List.copyOf(original.subList(delta.pos, delta.pos + delta.size))),
+                        new Chunk<>(delta.pos, delta.lines));
+                case INSERT -> new InsertDelta<>(
+                        new Chunk<>(
+                                delta.pos,
+                                List.of()),
+                        new Chunk<>(delta.pos, delta.lines));
+                default -> throw new RuntimeException("Trying to apply a patch with a delta of unsupported type.");
+            });
+        }
+
+        return DiffUtils.patch(original, patch);
     }
 
     public static String serializeDeltas(List<NetworkDelta> deltas){
