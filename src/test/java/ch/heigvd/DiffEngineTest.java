@@ -27,57 +27,89 @@ public class DiffEngineTest {
     static final List<String> MEDIUM_MULTI_INSERT_INTO_ORIGINAL = List.of("LINE1", "INSERTED","LINE2", "LINE3", "INSERTED", "LINE4");
     static final List<String> MEDIUM_MULTI_DELETE_FROM_ORIGINAL = List.of("LINE1", "LINE3");
 
+    static final List<String> LARGE_ORIGINAL = List.of(
+            "LINE1",
+            "LINE2",
+            "LINE3",
+            "LINE4",
+            "LINE5",
+            "LINE6",
+            "LINE7",
+            "LINE8",
+            "LINE9",
+            "LINE10",
+            "LINE11",
+            "LINE12"
+    );
+
+    static final List<String> LARGE_REVISED = List.of(
+            "INSERTED",
+            "LINE1",
+            "INSERTED",
+            "INSERTED",
+            "LINE2",
+            "CHANGED",
+            "LINE4",
+            "LINE5",
+            "LINE6",
+            "LINE10",
+            "CHANGED",
+            "CHANGED",
+            "LINE12",
+            "INSERTED"
+    );
+
     @Test
-    void test_computeSha256_computesTwoSameLineLists_then_areSameSHA(){
+    void test_computeSha256_withTwoSameLineLists_then_areSameSHA(){
         String sha1 = DiffEngine.computeSha256(SHORT_ORIGINAL);
         String sha2 = DiffEngine.computeSha256(SHORT_ORIGINAL);
         assertEquals(sha1,sha2);
     }
 
     @Test
-    void test_computeSha256_computesTwoDifferentLineLists_then_areNotSameSHA(){
+    void test_computeSha256_withTwoDifferentLineLists_then_areNotSameSHA(){
         String sha1 = DiffEngine.computeSha256(SHORT_ORIGINAL);
         String sha2 = DiffEngine.computeSha256(SHORT_ORIGINAL2);
         assertNotEquals(sha1,sha2);
     }
 
     @Test
-    void test_computeSha256_computesTwoEmptyLists_then_areSameSHA(){
+    void test_computeSha256_withTwoEmptyLists_then_areSameSHA(){
         String sha1 = DiffEngine.computeSha256(SHORT_EMPTY);
         String sha2 = DiffEngine.computeSha256(SHORT_EMPTY);
         assertEquals(sha1,sha2);
     }
 
     @Test
-    void test_computeSha256_computesEmptyListAndOriginalLineLists_then_areNotSameSHA(){
+    void test_computeSha256_withEmptyListAndOriginalLineLists_then_areNotSameSHA(){
         String sha1 = DiffEngine.computeSha256(SHORT_ORIGINAL);
         String sha2 = DiffEngine.computeSha256(SHORT_EMPTY);
         assertNotEquals(sha1,sha2);
     }
 
     @Test
-    void test_computeSha256_computesTwoEmptyLinesLists_then_areSameSHA(){
+    void test_computeSha256_withTwoEmptyLinesLists_then_areSameSHA(){
         String sha1 = DiffEngine.computeSha256(SHORT_EMPTYLINES);
         String sha2 = DiffEngine.computeSha256(SHORT_EMPTYLINES);
         assertEquals(sha1,sha2);
     }
 
     @Test
-    void test_computeSha256_computesEmptyListAndEmptyLinesLists_then_areNotSameSHA(){
+    void test_computeSha256_withEmptyListAndEmptyLinesLists_then_areNotSameSHA(){
         String sha1 = DiffEngine.computeSha256(SHORT_EMPTY);
         String sha2 = DiffEngine.computeSha256(SHORT_EMPTYLINES);
         assertNotEquals(sha1,sha2);
     }
 
     @Test
-    void test_computeSha256_computesOriginalAndEmptyLinesLists_then_areNotSameSHA(){
+    void test_computeSha256_withOriginalAndEmptyLinesLists_then_areNotSameSHA(){
         String sha1 = DiffEngine.computeSha256(SHORT_ORIGINAL);
         String sha2 = DiffEngine.computeSha256(SHORT_EMPTYLINES);
         assertNotEquals(sha1,sha2);
     }
 
     @Test
-    void test_computeDeltas_computesOriginalAndChange_then_getChangeDelta(){
+    void test_computeDeltas_withOriginalAndChange_then_getChangeDelta(){
         List<NetworkDelta> expected = List.of(new NetworkDelta(DeltaType.CHANGE, 0, 1, List.of("CHANGED")));
         List<NetworkDelta> actual = DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_CHANGE_FROM_ORIGINAL);
 
@@ -85,7 +117,7 @@ public class DiffEngineTest {
     }
 
     @Test
-    void test_computeDeltas_computesOriginalAndInsert_then_getInsertDelta(){
+    void test_computeDeltas_withOriginalAndInsert_then_getInsertDelta(){
         List<NetworkDelta> expected = List.of(new NetworkDelta(DeltaType.INSERT, 1, 0, List.of("INSERTED")));
         List<NetworkDelta> actual = DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_INSERT_INTO_ORIGINAL);
 
@@ -93,7 +125,7 @@ public class DiffEngineTest {
     }
 
     @Test
-    void test_computeDeltas_computesOriginalAndDelete_then_getDeleteDelta(){
+    void test_computeDeltas_withOriginalAndDelete_then_getDeleteDelta(){
         List<NetworkDelta> expected = List.of(new NetworkDelta(DeltaType.DELETE, 0, 1, List.of()));
         List<NetworkDelta> actual = DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_DELETE_FROM_ORIGINAL);
 
@@ -101,7 +133,7 @@ public class DiffEngineTest {
     }
 
     @Test
-    void test_applyDeltas_computesOriginalAndChange_apply_then_getChangedText() throws PatchFailedException {
+    void test_applyDeltas_withOriginalAndChange_apply_then_getChangedText() throws PatchFailedException {
         List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
                 DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_CHANGE_FROM_ORIGINAL));
 
@@ -109,7 +141,7 @@ public class DiffEngineTest {
     }
 
     @Test
-    void test_applyDeltas_computesOriginalAndInsert_apply_then_getInsertedText() throws PatchFailedException {
+    void test_applyDeltas_withOriginalAndInsert_apply_then_getInsertedText() throws PatchFailedException {
         List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
                 DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_INSERT_INTO_ORIGINAL));
 
@@ -117,7 +149,7 @@ public class DiffEngineTest {
     }
 
     @Test
-    void test_applyDeltas_computesOriginalAndDelete_apply_then_getDeletedText() throws PatchFailedException {
+    void test_applyDeltas_withOriginalAndDelete_apply_then_getDeletedText() throws PatchFailedException {
         List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
                 DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_DELETE_FROM_ORIGINAL));
 
@@ -125,7 +157,7 @@ public class DiffEngineTest {
     }
 
     @Test
-    void test_applyDeltas_multi_computesOriginalAndChange_apply_then_getChangedText() throws PatchFailedException {
+    void test_applyDeltas_multi_withOriginalAndChange_apply_then_getChangedText() throws PatchFailedException {
         List<String> actual = DiffEngine.applyDeltas(MEDIUM_ORIGINAL,
                 DiffEngine.computeDeltas(MEDIUM_ORIGINAL, MEDIUM_MULTI_CHANGE_FROM_ORIGINAL));
 
@@ -133,7 +165,7 @@ public class DiffEngineTest {
     }
 
     @Test
-    void test_applyDeltas_multi_computesOriginalAndInsert_apply_then_getInsertedText() throws PatchFailedException {
+    void test_applyDeltas_multi_withOriginalAndInsert_apply_then_getInsertedText() throws PatchFailedException {
         List<String> actual = DiffEngine.applyDeltas(MEDIUM_ORIGINAL,
                 DiffEngine.computeDeltas(MEDIUM_ORIGINAL, MEDIUM_MULTI_INSERT_INTO_ORIGINAL));
 
@@ -141,10 +173,18 @@ public class DiffEngineTest {
     }
 
     @Test
-    void test_applyDeltas_multi_computesOriginalAndDelete_apply_then_getDeletedText() throws PatchFailedException {
-        List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
+    void test_applyDeltas_multi_withOriginalAndDelete_apply_then_getDeletedText() throws PatchFailedException {
+        List<String> actual = DiffEngine.applyDeltas(MEDIUM_ORIGINAL,
                 DiffEngine.computeDeltas(MEDIUM_ORIGINAL, MEDIUM_MULTI_DELETE_FROM_ORIGINAL));
 
         assertEquals(MEDIUM_MULTI_DELETE_FROM_ORIGINAL, actual);
+    }
+
+    @Test
+    void test_computeDeltas_and_applyDeltas_with_largeRevised_getRevised() throws PatchFailedException {
+        List<String> actual = DiffEngine.applyDeltas(LARGE_ORIGINAL,
+                DiffEngine.computeDeltas(LARGE_ORIGINAL, LARGE_REVISED));
+
+        assertEquals(LARGE_REVISED, actual);
     }
 }
