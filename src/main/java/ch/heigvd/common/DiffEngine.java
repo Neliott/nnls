@@ -31,6 +31,7 @@ public class DiffEngine {
         List<AbstractDelta<String>> deltas = patch.getDeltas();
         List<NetworkDelta> networkDeltas = new ArrayList<>();
 
+        //extract the target to make a minimized delta
         for (AbstractDelta<String> delta : deltas){
             Chunk<String> chunk = deltas.getFirst().getTarget();
             networkDeltas.add(new NetworkDelta(delta.getType(), chunk.getPosition(), chunk.size(), chunk.getLines()));
@@ -46,11 +47,11 @@ public class DiffEngine {
 
     public static String serializeDeltas(List<NetworkDelta> deltas){
         // https://javadoc.io/static/com.google.code.gson/gson/2.8.5/com/google/gson/Gson.html
-        throw new ExecutionControl.NotImplementedException("serializeDeltas not implemented");
+        return "serializeDeltas not implemented";
     }
 
     public static List<NetworkDelta> deserializeDeltas(String json){
         // https://javadoc.io/static/com.google.code.gson/gson/2.8.5/com/google/gson/Gson.html
-        throw new ExecutionControl.NotImplementedException("deserializeDeltas not implemented");
+        return List.of(new NetworkDelta(DeltaType.EQUAL,0,0,List.of("deserializeDeltas not implemented")));
     }
 }
