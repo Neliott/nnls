@@ -1,4 +1,4 @@
-﻿package ch.heigvd.common;
+package ch.heigvd.common;
 
 import com.github.difflib.patch.*;
 
@@ -30,8 +30,19 @@ public class DiffEngine {
 
         //extract the target to make a minimized delta
         for (AbstractDelta<String> delta : deltas){
-            Chunk<String> chunk = deltas.getFirst().getTarget();
-            networkDeltas.add(new NetworkDelta(delta.getType(), chunk.getPosition(), chunk.size(), chunk.getLines()));
+            Chunk<String> chunk = delta.getTarget();
+            int chunkSize = switch (delta.getType()){
+                case INSERT -> 0;
+                case DELETE -> delta.getSource().size();
+                case CHANGE -> chunk.size();
+                default -> throw new RuntimeException("Trying to apply a patch with a delta of unsupported type.");
+            };
+            networkDeltas.add(new NetworkDelta(
+                            delta.getType(),
+                            chunk.getPosition(),
+                            chunkSize,
+                            chunk.getLines())
+            );
         }
 
         return networkDeltas;
@@ -40,7 +51,6 @@ public class DiffEngine {
     public static List<String> applyDeltas(List<String> original, List<NetworkDelta> deltas) throws PatchFailedException {
         //reconstruct the patch
         Patch<String> patch = new Patch<>(deltas.size());
-        Chunk<String> emptyChunk = new Chunk<String>(0, List.of());
 
         for (NetworkDelta delta : deltas){
             patch.addDelta(switch (delta.type){
