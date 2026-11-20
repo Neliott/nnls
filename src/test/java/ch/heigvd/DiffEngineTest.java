@@ -187,4 +187,22 @@ public class DiffEngineTest {
 
         assertEquals(LARGE_REVISED, actual);
     }
+
+    @Test
+    void test_serializeDeltas_with_largeRevisedDeltas_getCorrectJSONAccordingToProtocol(){
+        List<NetworkDelta> deltas = DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_CHANGE_FROM_ORIGINAL);
+        List<NetworkDelta> actual = DiffEngine.deserializeDeltas(DiffEngine.serializeDeltas(deltas));
+
+        assertEquals(deltas, actual);
+    }
+
+    @Test
+    void test_serializeDeltas__with_smallChange_getCorrectJSONAccordingToProtocol(){
+        String expected = "[{\"type\":\"CHANGE\",\"pos\":0,\"size\":1,\"lines\":[\"CHANGED\"]}]";
+        String actual = DiffEngine.serializeDeltas(List.of(
+                        new NetworkDelta(DeltaType.CHANGE, 0, 1, List.of("CHANGED"))
+        ));
+
+        assertEquals(expected, actual);
+    }
 }
