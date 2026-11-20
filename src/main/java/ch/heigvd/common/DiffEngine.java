@@ -4,7 +4,9 @@ import com.github.difflib.patch.*;
 
 import com.github.difflib.DiffUtils;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -14,6 +16,9 @@ import java.util.List;
 import java.security.MessageDigest;
 
 public class DiffEngine {
+    private static final Gson GSON = new Gson();
+    private static final Type DELTA_LIST_TYPE = new TypeToken<List<NetworkDelta>>() {}.getType();
+
     public static String computeSha256(List<String> lines){
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -71,11 +76,11 @@ public class DiffEngine {
 
     public static String serializeDeltas(List<NetworkDelta> deltas){
         // https://javadoc.io/static/com.google.code.gson/gson/2.8.5/com/google/gson/Gson.html
-        return "serializeDeltas not implemented";
+        return GSON.toJson(deltas);
     }
 
     public static List<NetworkDelta> deserializeDeltas(String json){
         // https://javadoc.io/static/com.google.code.gson/gson/2.8.5/com/google/gson/Gson.html
-        return List.of(new NetworkDelta(DeltaType.EQUAL,0,0,List.of("deserializeDeltas not implemented")));
+        return GSON.fromJson(json, DELTA_LIST_TYPE);
     }
 }
