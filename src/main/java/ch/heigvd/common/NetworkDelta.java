@@ -4,6 +4,12 @@ import com.github.difflib.patch.DeltaType;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Structure representing a delta in a text document in a network friendly way
+ * <br/>`pos` describes the position at which to apply this delta
+ * <br/>`size` describes the number of lines of the original document that are replaced in a CHANGE or the number of lines removed in a DELETE.
+ * It DOES NOT represent the number of lines in a modification or the number of lines to insert
+ */
 public class NetworkDelta {
     public DeltaType type;
     public int pos;
