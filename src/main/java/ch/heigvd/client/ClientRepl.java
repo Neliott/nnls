@@ -76,6 +76,7 @@ public class ClientRepl {
         }
     }
 
+    /** Parses and executes a REPL command; returns false when the loop should exit. */
     private boolean dispatch(String input, BufferedReader userIn, BufferedWriter userOut)
             throws IOException {
         String[] tokens = input.split("\\s+", 2); // Splits a string into a maximum of two parts at the first group of whitespace characters
@@ -110,6 +111,7 @@ public class ClientRepl {
         }
     }
 
+    /** Creates a room from a local file and uploads its initial state; returns true to continue. */
     private boolean handleCreate(String args, BufferedWriter userOut) throws IOException {
         // 1. Validate session state and local file path
         if (!requireRoom(false, userOut) || args.isEmpty()) {
@@ -158,6 +160,7 @@ public class ClientRepl {
         return true;
     }
 
+    /** Joins a room and saves the remote file locally; returns true to continue the REPL. */
     private boolean handleJoin(String args, BufferedWriter userOut) throws IOException {
         // 1. Validate session state and target local directory
         if (!requireRoom(false, userOut) || args.isEmpty()) {
@@ -205,6 +208,7 @@ public class ClientRepl {
         return true;
     }
 
+    /** Prints local deltas against the synced baseline; returns true to continue the REPL. */
     private boolean handleDiff(BufferedWriter userOut) throws IOException {
         if (!requireRoom(true, userOut)) {
             return true;
@@ -224,6 +228,7 @@ public class ClientRepl {
         return true;
     }
 
+    /** Displays the current local file with 0-based line numbers; returns true to continue. */
     private boolean handleShow(BufferedWriter userOut) throws IOException {
         if (!requireRoom(true, userOut)) {
             return true;
@@ -246,6 +251,7 @@ public class ClientRepl {
         return true;
     }
 
+    /** Sends local diffs to the server and triggers conflict resolution on ERROR 4; returns true to continue. */
     private boolean handlePush(BufferedReader userIn, BufferedWriter userOut) throws IOException {
         // 1. Validate room state and compute local diff
         if (!requireRoom(true, userOut)) {
@@ -285,6 +291,7 @@ public class ClientRepl {
         return true;
     }
 
+    /** Prompts the user to accept remote or rebase local edits on conflict; returns false on EOF. */
     private boolean handleConflict(
             String errorData, BufferedReader userIn, BufferedWriter userOut) throws IOException {
         // 1. Extract valid checksum and decode remote document state
@@ -325,6 +332,7 @@ public class ClientRepl {
         }
     }
 
+    /** Fetches remote updates if the server checksum changed; returns true to continue the REPL. */
     private boolean handlePull(BufferedWriter userOut) throws IOException {
         // 1. Query server for updates against current checksum
         if (!requireRoom(true, userOut)) {
@@ -356,6 +364,7 @@ public class ClientRepl {
         return true;
     }
 
+    /** Leaves the active room and resets local sync state; returns true to continue the REPL. */
     private boolean handleLeave(BufferedWriter userOut) throws IOException {
         if (!requireRoom(true, userOut)) {
             return true;
@@ -369,6 +378,7 @@ public class ClientRepl {
         return true;
     }
 
+    /** Sends QUIT to the server and returns false to exit the REPL loop on BYE or disconnect. */
     private boolean handleQuit(BufferedWriter userOut) throws IOException {
         if (!client.isConnected()) {
             println(userOut, "Goodbye!");
@@ -387,6 +397,7 @@ public class ClientRepl {
         return true;
     }
 
+    /** Computes local deltas or prints an I/O error and returns null. */
     private List<NetworkDelta> readDiff(BufferedWriter userOut) throws IOException {
         try {
             return state.computeLocalDiff();
@@ -407,6 +418,7 @@ public class ClientRepl {
         }
     }
 
+    /** Sends a request and returns the parsed response, or null on disconnect or malformed reply. */
     private ServerResponse send(String request, BufferedWriter userOut) throws IOException {
         String raw = client.sendRequest(request);
         if (raw == null) {
@@ -422,6 +434,7 @@ public class ClientRepl {
         }
     }
 
+    /** Returns true if the response is OK, otherwise prints the error/unexpected kind and returns false. */
     private boolean isOk(ServerResponse res, BufferedWriter userOut) throws IOException {
         if (res == null) {
             return false;
@@ -433,6 +446,7 @@ public class ClientRepl {
         return false;
     }
 
+    /** Checks whether the session matches the expected room state, printing guidance and returning false if not. */
     private boolean requireRoom(boolean mustBeInRoom, BufferedWriter userOut) throws IOException {
         if (mustBeInRoom && state == null) {
             println(userOut, "Not in a room. Use CREATE or JOIN first.");
@@ -445,6 +459,7 @@ public class ClientRepl {
         return true;
     }
 
+    /** Reconstructs document lines from a full-state JSON delta array, or returns null on error. */
     private List<String> decodeState(String json, BufferedWriter userOut) throws IOException {
         try {
             List<NetworkDelta> deltas = DiffEngine.deserializeDeltas(json);
