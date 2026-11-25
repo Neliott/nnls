@@ -2,7 +2,6 @@ package ch.heigvd.client;
 
 import ch.heigvd.common.DiffEngine;
 import ch.heigvd.common.NetworkDelta;
-import com.github.difflib.patch.DeltaType;
 import com.github.difflib.patch.PatchFailedException;
 import com.google.gson.JsonSyntaxException;
 import java.io.BufferedReader;
@@ -49,10 +48,13 @@ public class ClientRepl {
         BufferedWriter userOut = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
 
         try (ClientTransport conn = client) {
+            // 1. Connect to the server if not already connected
             if (!conn.isConnected()) {
                 conn.connect();
             }
             println(userOut, "Connected to NNLS server. Type HELP for available commands.");
+
+            // 2. Read-eval-print loop until QUIT, EOF, or disconnect
             boolean running = true;
             while (running && !disconnected) {
                 userOut.write("> ");
@@ -76,8 +78,8 @@ public class ClientRepl {
 
     private boolean dispatch(String input, BufferedReader userIn, BufferedWriter userOut)
             throws IOException {
-        String[] tokens = input.split("\\s+", 2);
-        String command = tokens[0].toUpperCase(Locale.ROOT);
+        String[] tokens = input.split("\\s+", 2); // Splits a string into a maximum of two parts at the first group of whitespace characters
+        String command = tokens[0].toUpperCase(Locale.ROOT); // Make it case insensitive
         String args = (tokens.length > 1) ? tokens[1].trim() : "";
 
         switch (command) {
@@ -109,6 +111,7 @@ public class ClientRepl {
     }
 
     private boolean handleCreate(String args, BufferedWriter userOut) throws IOException {
+        // 1. Validate session state and local file path
         if (!requireRoom(false, userOut) || args.isEmpty()) {
             if (state == null && args.isEmpty()) {
                 println(userOut, "Usage: CREATE <filepath>");
@@ -121,6 +124,8 @@ public class ClientRepl {
             println(userOut, "Invalid filename (must be non-empty without spaces): " + args);
             return true;
         }
+
+        // 2. Read local file contents before creating the room
         LocalState candidate = stateFactory.create(localPath);
         List<String> lines;
         try {
@@ -130,6 +135,7 @@ public class ClientRepl {
             return true;
         }
 
+        // 3. Create the room on the server
         ServerResponse createRes = send("CREATE " + fileName, userOut);
         if (!isOk(createRes, userOut)) {
             return true;
@@ -137,8 +143,9 @@ public class ClientRepl {
         state = candidate;
         currentRoomCode = createRes.getPayload();
 
-        String initJson = lines.isEmpty() ? "[]" : DiffEngine.serializeDeltas(
-                Collections.singletonList(new NetworkDelta(DeltaType.INSERT, 0, 0, lines)));
+        // 4. Upload initial document state (PUSH 0)
+        String initJson = DiffEngine.serializeDeltas(
+                DiffEngine.computeDeltas(Collections.emptyList(), lines));
         ServerResponse pushRes = send("PUSH 0 " + initJson, userOut);
         if (pushRes != null && pushRes.getKind() == ServerResponse.Kind.OK) {
             candidate.updateSyncedState(lines, pushRes.getPayload());
@@ -152,6 +159,7 @@ public class ClientRepl {
     }
 
     private boolean handleJoin(String args, BufferedWriter userOut) throws IOException {
+        // 1. Validate session state and target local directory
         if (!requireRoom(false, userOut) || args.isEmpty()) {
             if (state == null && args.isEmpty()) {
                 println(userOut, "Usage: JOIN <roomCode> [directory]");
@@ -165,6 +173,7 @@ public class ClientRepl {
             return true;
         }
 
+        // 2. Request room state from the server and decode the document
         ServerResponse res = send("JOIN " + joinArgs[0], userOut);
         if (!isOk(res, userOut)) {
             return true;
@@ -179,6 +188,7 @@ public class ClientRepl {
             return true;
         }
 
+        // 3. Save the remote file locally and initialize sync state
         Path targetFile = targetDir.resolve(parts[0]).normalize();
         LocalState newState = stateFactory.create(targetFile);
         try {
@@ -237,6 +247,7 @@ public class ClientRepl {
     }
 
     private boolean handlePush(BufferedReader userIn, BufferedWriter userOut) throws IOException {
+        // 1. Validate room state and compute local diff
         if (!requireRoom(true, userOut)) {
             return true;
         }
@@ -256,6 +267,7 @@ public class ClientRepl {
             return true;
         }
 
+        // 2. Send patch and handle OK or conflict (ERROR 4)
         ServerResponse res = send(
                 "PUSH " + state.getCurrentChecksum() + " " + DiffEngine.serializeDeltas(deltas), userOut);
         if (res == null) {
@@ -275,6 +287,7 @@ public class ClientRepl {
 
     private boolean handleConflict(
             String errorData, BufferedReader userIn, BufferedWriter userOut) throws IOException {
+        // 1. Extract valid checksum and decode remote document state
         String[] parts = errorData.split(" ", 2);
         if (parts.length < 2 || parts[0].isEmpty()) {
             println(userOut, "Conflict detected, but server omitted valid state data.");
@@ -284,6 +297,8 @@ public class ClientRepl {
         if (remoteLines == null) {
             return true;
         }
+
+        // 2. Prompt user to accept remote version or keep local edits
         println(userOut, "Conflict detected (server checksum: " + parts[0] + ").");
         println(userOut, "  [1] Accept remote version (overwrite local file)");
         println(userOut, "  [2] Keep local edits (rebase baseline for re-push)");
@@ -311,6 +326,7 @@ public class ClientRepl {
     }
 
     private boolean handlePull(BufferedWriter userOut) throws IOException {
+        // 1. Query server for updates against current checksum
         if (!requireRoom(true, userOut)) {
             return true;
         }
@@ -326,6 +342,8 @@ public class ClientRepl {
             printUnexpected(res, userOut);
             return true;
         }
+
+        // 2. Decode SYNC payload and overwrite local file
         String[] parts = res.getPayload().split(" ", 2);
         if (parts.length < 2 || parts[0].isEmpty()) {
             println(userOut, "Received invalid SYNC payload from server.");
