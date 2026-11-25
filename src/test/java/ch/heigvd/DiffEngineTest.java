@@ -109,6 +109,13 @@ public class DiffEngineTest {
     }
 
     @Test
+    void test_computeSha256_withEndLineAndCommaSpace_then_areNotSameSHA(){
+        String sha1 = DiffEngine.computeSha256(List.of("L1","L2"));
+        String sha2 = DiffEngine.computeSha256(List.of("L1, L2"));
+        assertNotEquals(sha1,sha2);
+    }
+
+    @Test
     void test_computeDeltas_withOriginalAndChange_then_getChangeDelta(){
         List<NetworkDelta> expected = List.of(new NetworkDelta(DeltaType.CHANGE, 0, 1, List.of("CHANGED")));
         List<NetworkDelta> actual = DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_CHANGE_FROM_ORIGINAL);
