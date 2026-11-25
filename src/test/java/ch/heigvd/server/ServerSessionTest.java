@@ -42,6 +42,20 @@ class ServerSessionTest {
         assertFalse(sessionA.isInRoom());
     }
 
+    @Test
+    void handlesCreateAndJoinValidation() {
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("CREATE"));
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("CREATE my notes.txt"));
+        assertEquals("ERROR 3 ROOM_NOT_FOUND", sessionA.handleMessage("JOIN WRONG"));
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("JOIN"));
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("JOIN A7B9X extra"));
+
+        assertEquals("OK ROOM1", sessionA.handleMessage("CREATE notes.txt"));
+        assertTrue(sessionA.isInRoom());
+        assertEquals("ERROR 2 INVALID_STATE", sessionA.handleMessage("CREATE other.txt"));
+        assertEquals("ERROR 2 INVALID_STATE", sessionA.handleMessage("JOIN ROOM1"));
+    }
+
     private static class InMemoryRoomRegistry implements RoomRegistry {
         private final Map<String, InMemoryRoom> rooms = new HashMap<>();
         private int counter = 0;
