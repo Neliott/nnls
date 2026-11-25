@@ -24,6 +24,7 @@ public class NetworkDelta {
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == null) return false;
         if (obj == this) return true;
 
         if (!(obj instanceof NetworkDelta delta)) return false;
@@ -45,10 +46,14 @@ public class NetworkDelta {
     public String toString(){
         StringBuilder builder = new StringBuilder();
         builder.append("Type: ").append(type).append(", Pos: ").append(pos).append(", Size: ").append(size).append(", [");
-        for (int i = 0; i < lines.size(); ++i){
-            builder.append("\"").append(lines.get(i)).append("\"");
-            if (i < lines.size()-1){
-                builder.append(",");
+        if (lines != null) {
+            for (int i = 0; i < lines.size(); ++i) {
+                if (lines.get(i) != null) {
+                    builder.append("\"").append(lines.get(i)).append("\"");
+                }
+                if (i < lines.size() - 1) {
+                    builder.append(",");
+                }
             }
         }
         builder.append("]");
