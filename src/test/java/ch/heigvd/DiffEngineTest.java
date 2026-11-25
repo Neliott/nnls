@@ -189,7 +189,7 @@ public class DiffEngineTest {
     }
 
     @Test
-    void test_serializeDeltas_with_largeRevisedDeltas_getCorrectJSONAccordingToProtocol(){
+    void test_serializeDeltas_with_smallRevisedDeltas_getCorrectJSONAccordingToProtocol(){
         List<NetworkDelta> deltas = DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_CHANGE_FROM_ORIGINAL);
         List<NetworkDelta> actual = DiffEngine.deserializeDeltas(DiffEngine.serializeDeltas(deltas));
 
