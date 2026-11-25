@@ -104,7 +104,7 @@ public class DiffEngine {
                     }
                     revised.addAll(delta.pos, delta.lines);
                 }
-                default -> throw new RuntimeException("Trying to apply a patch with a delta of unsupported type.");
+                case EQUAL -> {/*do nothing since it is equal*/}
             }
         }
 
