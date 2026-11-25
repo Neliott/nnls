@@ -12,22 +12,22 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class DiffEngineTest {
 
-    static final List<String> SHORT_ORIGINAL = List.of("LINE1", "LINE2");
+    static final public List<String> SHORT_ORIGINAL = List.of("LINE1", "LINE2");
 
-    static final List<String> SHORT_CHANGE_FROM_ORIGINAL = List.of("CHANGED", "LINE2");
-    static final List<String> SHORT_INSERT_INTO_ORIGINAL = List.of("LINE1", "INSERTED", "LINE2");
-    static final List<String> SHORT_DELETE_FROM_ORIGINAL = List.of("LINE2");
+    static final public List<String> SHORT_CHANGE_FROM_ORIGINAL = List.of("CHANGED", "LINE2");
+    static final public List<String> SHORT_INSERT_INTO_ORIGINAL = List.of("LINE1", "INSERTED", "LINE2");
+    static final public List<String> SHORT_DELETE_FROM_ORIGINAL = List.of("LINE2");
 
-    static final List<String> SHORT_ORIGINAL2 = List.of("2LINE1", "2LINE2");
-    static final List<String> SHORT_EMPTY = List.of();
-    static final List<String> SHORT_EMPTYLINES = List.of("", "");
+    static final public List<String> SHORT_ORIGINAL2 = List.of("2LINE1", "2LINE2");
+    static final public List<String> SHORT_EMPTY = List.of();
+    static final public List<String> SHORT_EMPTYLINES = List.of("", "");
 
-    static final List<String> MEDIUM_ORIGINAL = List.of("LINE1", "LINE2", "LINE3", "LINE4");
-    static final List<String> MEDIUM_MULTI_CHANGE_FROM_ORIGINAL = List.of("CHANGED", "LINE2", "LINE3", "CHANGED");
-    static final List<String> MEDIUM_MULTI_INSERT_INTO_ORIGINAL = List.of("LINE1", "INSERTED","LINE2", "LINE3", "INSERTED", "LINE4");
-    static final List<String> MEDIUM_MULTI_DELETE_FROM_ORIGINAL = List.of("LINE1", "LINE3");
+    static final public List<String> MEDIUM_ORIGINAL = List.of("LINE1", "LINE2", "LINE3", "LINE4");
+    static final public List<String> MEDIUM_MULTI_CHANGE_FROM_ORIGINAL = List.of("CHANGED", "LINE2", "LINE3", "CHANGED");
+    static final public List<String> MEDIUM_MULTI_INSERT_INTO_ORIGINAL = List.of("LINE1", "INSERTED","LINE2", "LINE3", "INSERTED", "LINE4");
+    static final public List<String> MEDIUM_MULTI_DELETE_FROM_ORIGINAL = List.of("LINE1", "LINE3");
 
-    static final List<String> LARGE_ORIGINAL = List.of(
+    static final public List<String> LARGE_ORIGINAL = List.of(
             "LINE1",
             "LINE2",
             "LINE3",
@@ -42,7 +42,7 @@ public class DiffEngineTest {
             "LINE12"
     );
 
-    static final List<String> LARGE_REVISED = List.of(
+    static final public List<String> LARGE_REVISED = List.of(
             "INSERTED",
             "LINE1",
             "INSERTED",
