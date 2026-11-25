@@ -109,6 +109,13 @@ public class DiffEngineTest {
     }
 
     @Test
+    void test_computeSha256_withEndLineAndCommaSpace_then_areNotSameSHA(){
+        String sha1 = DiffEngine.computeSha256(List.of("L1","L2"));
+        String sha2 = DiffEngine.computeSha256(List.of("L1, L2"));
+        assertNotEquals(sha1,sha2);
+    }
+
+    @Test
     void test_computeDeltas_withOriginalAndChange_then_getChangeDelta(){
         List<NetworkDelta> expected = List.of(new NetworkDelta(DeltaType.CHANGE, 0, 1, List.of("CHANGED")));
         List<NetworkDelta> actual = DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_CHANGE_FROM_ORIGINAL);
@@ -133,6 +140,16 @@ public class DiffEngineTest {
     }
 
     @Test
+    void test_applyDeltas_withOutOfBoundDeltas_then_throw() {
+        assertThrows(RuntimeException.class, () ->
+                DiffEngine.applyDeltas(LARGE_ORIGINAL,
+                        List.of(
+                                new NetworkDelta(DeltaType.DELETE, 5, 5, List.of()),
+                                new NetworkDelta(DeltaType.CHANGE, 9, 2, List.of("CHANGED", "CHANGED"))
+                        )));
+    }
+
+    @Test
     void test_applyDeltas_withOriginalAndChange_apply_then_getChangedText() throws PatchFailedException {
         List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
                 DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_CHANGE_FROM_ORIGINAL));
@@ -154,6 +171,22 @@ public class DiffEngineTest {
                 DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_DELETE_FROM_ORIGINAL));
 
         assertEquals(SHORT_DELETE_FROM_ORIGINAL, actual);
+    }
+
+    @Test
+    void test_applyDeltas_withEmptyAndOriginal_apply_then_getOriginalText() throws PatchFailedException {
+        List<String> actual = DiffEngine.applyDeltas(SHORT_EMPTY,
+                DiffEngine.computeDeltas(SHORT_EMPTY, SHORT_ORIGINAL));
+
+        assertEquals(SHORT_ORIGINAL, actual);
+    }
+
+    @Test
+    void test_applyDeltas_withSameDocs_apply_then_getSame() throws PatchFailedException {
+        List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
+                DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_ORIGINAL));
+
+        assertEquals(SHORT_ORIGINAL, actual);
     }
 
     @Test
@@ -189,7 +222,7 @@ public class DiffEngineTest {
     }
 
     @Test
-    void test_serializeDeltas_with_largeRevisedDeltas_getCorrectJSONAccordingToProtocol(){
+    void test_serializeDeltas_with_smallRevisedDeltas_getCorrectJSONAccordingToProtocol(){
         List<NetworkDelta> deltas = DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_CHANGE_FROM_ORIGINAL);
         List<NetworkDelta> actual = DiffEngine.deserializeDeltas(DiffEngine.serializeDeltas(deltas));
 
