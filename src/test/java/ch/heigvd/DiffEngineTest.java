@@ -140,6 +140,16 @@ public class DiffEngineTest {
     }
 
     @Test
+    void test_applyDeltas_withOutOfBoundDeltas_then_throw() {
+        assertThrows(RuntimeException.class, () ->
+                DiffEngine.applyDeltas(LARGE_ORIGINAL,
+                        List.of(
+                                new NetworkDelta(DeltaType.DELETE, 5, 5, List.of()),
+                                new NetworkDelta(DeltaType.CHANGE, 9, 2, List.of("CHANGED", "CHANGED"))
+                        )));
+    }
+
+    @Test
     void test_applyDeltas_withOriginalAndChange_apply_then_getChangedText() throws PatchFailedException {
         List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
                 DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_CHANGE_FROM_ORIGINAL));
