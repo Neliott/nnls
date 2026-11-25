@@ -164,6 +164,22 @@ public class DiffEngineTest {
     }
 
     @Test
+    void test_applyDeltas_withEmptyAndOriginal_apply_then_getOriginalText() throws PatchFailedException {
+        List<String> actual = DiffEngine.applyDeltas(SHORT_EMPTY,
+                DiffEngine.computeDeltas(SHORT_EMPTY, SHORT_ORIGINAL));
+
+        assertEquals(SHORT_ORIGINAL, actual);
+    }
+
+    @Test
+    void test_applyDeltas_withSameDocs_apply_then_getSame() throws PatchFailedException {
+        List<String> actual = DiffEngine.applyDeltas(SHORT_ORIGINAL,
+                DiffEngine.computeDeltas(SHORT_ORIGINAL, SHORT_ORIGINAL));
+
+        assertEquals(SHORT_ORIGINAL, actual);
+    }
+
+    @Test
     void test_applyDeltas_multi_withOriginalAndChange_apply_then_getChangedText() throws PatchFailedException {
         List<String> actual = DiffEngine.applyDeltas(MEDIUM_ORIGINAL,
                 DiffEngine.computeDeltas(MEDIUM_ORIGINAL, MEDIUM_MULTI_CHANGE_FROM_ORIGINAL));
