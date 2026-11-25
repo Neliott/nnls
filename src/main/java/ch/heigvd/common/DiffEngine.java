@@ -1,0 +1,86 @@
+package ch.heigvd.common;
+
+import com.github.difflib.patch.*;
+
+import com.github.difflib.DiffUtils;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HexFormat;
+import java.util.List;
+import java.security.MessageDigest;
+
+public class DiffEngine {
+    private static final Gson GSON = new Gson();
+    private static final Type DELTA_LIST_TYPE = new TypeToken<List<NetworkDelta>>() {}.getType();
+
+    public static String computeSha256(List<String> lines){
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] shaData = digest.digest(lines.toString().getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(shaData);
+        }catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static List<NetworkDelta> computeDeltas(List<String> original, List<String> revised){
+        Patch<String> patch = DiffUtils.diff(original, revised);
+        List<AbstractDelta<String>> deltas = patch.getDeltas();
+        List<NetworkDelta> networkDeltas = new ArrayList<>();
+
+        //extract the target to make a minimized delta
+        for (AbstractDelta<String> delta : deltas){
+            Chunk<String> chunk = delta.getTarget();
+            int chunkSize = switch (delta.getType()){
+                case INSERT -> 0;
+                case DELETE -> delta.getSource().size();
+                case CHANGE -> delta.getSource().size();
+                default -> throw new RuntimeException("Trying to apply a patch with a delta of unsupported type.");
+            };
+            networkDeltas.add(new NetworkDelta(
+                            delta.getType(),
+                            chunk.getPosition(),
+                            chunkSize,
+                            chunk.getLines())
+            );
+        }
+
+        return networkDeltas;
+    }
+
+    public static List<String> applyDeltas(List<String> original, List<NetworkDelta> deltas) throws PatchFailedException {
+        //using DiffUtils here would mean having to reconstruct the source chunk,
+        // it is easier, thus, to remake the logic
+        ArrayList<String> revised = new ArrayList<String>(original);
+
+        for (NetworkDelta delta : deltas){
+            switch (delta.type){
+                case CHANGE -> {
+                    revised.subList(delta.pos, delta.pos + delta.size).clear();
+                    revised.addAll(delta.pos, delta.lines);
+                }
+                case DELETE -> revised.subList(delta.pos, delta.pos + delta.size).clear();
+                case INSERT -> revised.addAll(delta.pos, delta.lines);
+                default -> throw new RuntimeException("Trying to apply a patch with a delta of unsupported type.");
+            }
+        }
+
+        return revised;
+    }
+
+    public static String serializeDeltas(List<NetworkDelta> deltas){
+        // https://javadoc.io/static/com.google.code.gson/gson/2.8.5/com/google/gson/Gson.html
+        return GSON.toJson(deltas);
+    }
+
+    public static List<NetworkDelta> deserializeDeltas(String json){
+        // https://javadoc.io/static/com.google.code.gson/gson/2.8.5/com/google/gson/Gson.html
+        return GSON.fromJson(json, DELTA_LIST_TYPE);
+    }
+}
