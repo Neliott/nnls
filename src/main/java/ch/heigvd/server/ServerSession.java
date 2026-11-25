@@ -30,6 +30,8 @@ public class ServerSession {
                 return handleCreate(args);
             case "JOIN":
                 return handleJoin(args);
+            case "PUSH":
+                return handlePush(args);
             case "PULL":
                 return handlePull(args);
             case "LEAVE":
@@ -76,6 +78,30 @@ public class ServerSession {
         currentRoom = room.get();
         RoomState state = currentRoom.getState();
         return "OK " + state.filename + " " + state.checksum + " " + state.fullStateJson;
+    }
+
+    private String handlePush(String args) {
+        if (currentRoom == null) {
+            return ProtocolError.INVALID_STATE.format();
+        }
+        int sep = args.indexOf(' ');
+        if (sep <= 0) {
+            return ProtocolError.BAD_ARGUMENTS.format();
+        }
+        String prevChecksum = args.substring(0, sep);
+        String jsonDeltas = args.substring(sep + 1).trim();
+        if (!jsonDeltas.startsWith("[") || !jsonDeltas.endsWith("]")
+                || jsonDeltas.contains("\n") || jsonDeltas.contains("\r")) {
+            return ProtocolError.BAD_ARGUMENTS.format();
+        }
+        PatchResult result = currentRoom.applyPatch(prevChecksum, jsonDeltas);
+        if (result.status == PatchResult.Status.OK) {
+            return "OK " + result.checksum;
+        }
+        if (result.status == PatchResult.Status.OUTDATED) {
+            return ProtocolError.OUTDATED_CHECKSUM.format(result.checksum + " " + result.fullStateJson);
+        }
+        return ProtocolError.BAD_ARGUMENTS.format();
     }
 
     private String handlePull(String args) {
