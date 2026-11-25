@@ -127,6 +127,27 @@ class ClientReplTest {
     }
 
     @Test
+    void pullWithLocalEditsTriggersConflictResolution() {
+        String remoteJson = DiffEngine.serializeDeltas(List.of(
+                new NetworkDelta(DeltaType.INSERT, 0, 0, List.of("Hello", "Alice"))));
+
+        InMemoryFiles files = new InMemoryFiles();
+        Path doc = tempDir.resolve("pull-conflict.txt");
+        files.disk.put(doc, List.of("Hello", "Init"));
+        ScriptedTransport transport = new ScriptedTransport(List.of(
+                "OK ROOM1", "OK chk_1", "SYNC chk_2 " + remoteJson, "OK chk_3", "BYE"));
+
+        String out = runRepl(transport, new EditingFactory(files, doc, List.of("Hello", "LocalBob")),
+                "CREATE " + doc + "\nPULL\n2\nPUSH\nQUIT\n");
+
+        assertTrue(out.contains("Conflict detected (server checksum: chk_2)."));
+        assertTrue(out.contains("Kept local edits; baseline rebased to chk_2."));
+        assertTrue(out.contains("Push successful. New checksum: chk_3"));
+        assertEquals(List.of("Hello", "LocalBob"), files.disk.get(doc));
+        assertTrue(transport.sent.get(3).startsWith("PUSH chk_2 "));
+    }
+
+    @Test
     void handlesErrorsAndServerDisconnect() {
         ScriptedTransport transport = new ScriptedTransport(List.of(
                 "ERROR 1 UNKNOWN_COMMAND",
