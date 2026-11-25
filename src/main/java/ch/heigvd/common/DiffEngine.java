@@ -10,7 +10,6 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 import java.security.MessageDigest;
@@ -49,9 +48,8 @@ public class DiffEngine {
             Chunk<String> chunk = delta.getTarget();
             int chunkSize = switch (delta.getType()){
                 case INSERT -> 0;
-                case DELETE -> delta.getSource().size();
-                case CHANGE -> delta.getSource().size();
-                default -> throw new RuntimeException("Trying to apply a patch with a delta of unsupported type.");
+                case DELETE, CHANGE -> delta.getSource().size();
+                default -> throw new RuntimeException("Trying to compute a patch with a delta of unsupported type.");
             };
             networkDeltas.add(new NetworkDelta(
                             delta.getType(),
