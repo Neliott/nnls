@@ -1,6 +1,7 @@
 package ch.heigvd.server;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Pure, socket-independent NNLSP state machine for a single client session.
@@ -25,6 +26,10 @@ public class ServerSession {
         String args = (space < 0) ? "" : line.substring(space + 1).trim();
 
         switch (command) {
+            case "CREATE":
+                return handleCreate(args);
+            case "JOIN":
+                return handleJoin(args);
             case "QUIT":
                 return handleQuit(args);
             default:
@@ -42,11 +47,42 @@ public class ServerSession {
         currentRoom = null;
     }
 
+    private String handleCreate(String args) {
+        if (currentRoom != null) {
+            return ProtocolError.INVALID_STATE.format();
+        }
+        if (!isSingleArg(args)) {
+            return ProtocolError.BAD_ARGUMENTS.format();
+        }
+        currentRoom = roomRegistry.createRoom(args);
+        return "OK " + currentRoom.getRoomCode();
+    }
+
+    private String handleJoin(String args) {
+        if (currentRoom != null) {
+            return ProtocolError.INVALID_STATE.format();
+        }
+        if (!isSingleArg(args)) {
+            return ProtocolError.BAD_ARGUMENTS.format();
+        }
+        Optional<SyncRoom> room = roomRegistry.getRoom(args);
+        if (!room.isPresent()) {
+            return ProtocolError.ROOM_NOT_FOUND.format();
+        }
+        currentRoom = room.get();
+        RoomState state = currentRoom.getState();
+        return "OK " + state.filename + " " + state.checksum + " " + state.fullStateJson;
+    }
+
     private String handleQuit(String args) {
         if (!args.isEmpty()) {
             return ProtocolError.BAD_ARGUMENTS.format();
         }
         currentRoom = null;
         return "BYE";
+    }
+
+    private static boolean isSingleArg(String args) {
+        return !args.isEmpty() && !args.contains(" ") && !args.contains("\t");
     }
 }
