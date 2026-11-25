@@ -2,8 +2,8 @@ package ch.heigvd.client;
 
 import java.nio.file.Path;
 
-/** Factory creating {@link LocalState} instances for a target local file path. */
+/** Instantiates a {@link LocalState} tracker when entering a room for a given file on disk. */
 public interface LocalStateFactory {
-    /** Creates a local state manager bound to the given file path. */
+    /** Builds a tracker bound to the given file path. */
     LocalState create(Path localPath);
 }

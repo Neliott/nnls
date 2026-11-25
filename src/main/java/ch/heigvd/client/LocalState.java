@@ -5,29 +5,29 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
-/** Contract for local file I/O, synced baseline state, and conflict reconciliation. */
+/** Contract for tracking a file on disk against the last version confirmed by the server. */
 public interface LocalState {
-    /** Reads all lines from the local file. */
+    /** Loads the current text lines from the tracked file on disk. */
     List<String> readLocalLines() throws IOException;
 
-    /** Writes all lines to the local file. */
+    /** Replaces the contents of the tracked file on disk with the given lines. */
     void writeLocalLines(List<String> lines) throws IOException;
 
-    /** Computes deltas between the synced baseline and the local file. */
+    /** Compares the server-confirmed reference snapshot against the file on disk to produce line patches. */
     List<NetworkDelta> computeLocalDiff() throws IOException;
 
-    /** Overwrites the local file and baseline with the remote state and checksum. */
+    /** Discards unpushed edits by writing the server's version to disk and resetting the reference snapshot. */
     void acceptRemote(List<String> remoteLines, String validChecksum) throws IOException;
 
-    /** Keeps local disk edits and rebases the synced baseline to the remote state. */
+    /** Preserves the file on disk while moving the reference snapshot to the server's version so the next push diffs against it. */
     void keepLocalAndRebase(List<String> remoteLines, String validChecksum);
 
-    /** Updates the synced lines and checksum after a successful sync. */
+    /** Records the given lines and hash in memory as the new server-confirmed reference snapshot without modifying disk. */
     void updateSyncedState(List<String> lines, String checksum);
 
-    /** Returns the synchronized local file path. */
+    /** Returns the path of the tracked file on disk. */
     Path getLocalPath();
 
-    /** Returns the last known server checksum. */
+    /** Returns the SHA-256 hash of the current reference snapshot (or "0" before initial upload). */
     String getCurrentChecksum();
 }

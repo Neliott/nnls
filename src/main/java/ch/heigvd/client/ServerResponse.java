@@ -19,7 +19,7 @@ public class ServerResponse {
         this.errorData = errorData;
     }
 
-    /** Parses a raw response line into a {@link ServerResponse}. */
+    /** Splits and validates a raw single-line NNLSP reply into its kind, payload, and optional error fields. */
     public static ServerResponse parse(String rawLine) {
         if (rawLine == null || rawLine.trim().isEmpty()) {
             throw new IllegalArgumentException("Empty server response");
@@ -75,7 +75,7 @@ public class ServerResponse {
     public String getErrorReason() { return errorReason; }
     public String getErrorData() { return errorData; }
 
-    /** Formats an ERROR response into a user-friendly message. */
+    /** Translates a server ERROR code into a human-readable message for the terminal user. */
     public String formatErrorMessage() {
         switch (errorCode) {
             case 1: return "Server rejected request: unknown command.";
