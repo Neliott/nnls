@@ -141,7 +141,7 @@ package "client" {
     class ClientState {
         - localPath: Path
         - syncedLines: List<String>
-        - currentChecksum: String
+        - syncedChecksum: String
         + ClientState(localPath: Path)
         + readLocalLines(): List<String>
         + writeLocalLines(lines: List<String>): void
@@ -151,6 +151,7 @@ package "client" {
         + updateSyncedState(lines: List<String>, checksum: String): void
         + getLocalPath(): Path
         + getCurrentChecksum(): String
+        + getSyncedChecksum(): String
     }
 
     class ClientRepl {
