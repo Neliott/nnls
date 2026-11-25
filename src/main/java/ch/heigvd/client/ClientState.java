@@ -21,7 +21,7 @@ public class ClientState {
     public ClientState(Path path){
         this.localPath = path;
         syncedLines = List.of();
-        syncedChecksum = null;
+        syncedChecksum = "0";
     }
 
     public List<String> readLocalLines(){
