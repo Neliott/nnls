@@ -30,6 +30,8 @@ public class ServerSession {
                 return handleCreate(args);
             case "JOIN":
                 return handleJoin(args);
+            case "PULL":
+                return handlePull(args);
             case "LEAVE":
                 return handleLeave(args);
             case "QUIT":
@@ -74,6 +76,17 @@ public class ServerSession {
         currentRoom = room.get();
         RoomState state = currentRoom.getState();
         return "OK " + state.filename + " " + state.checksum + " " + state.fullStateJson;
+    }
+
+    private String handlePull(String args) {
+        if (currentRoom == null) {
+            return ProtocolError.INVALID_STATE.format();
+        }
+        if (!isSingleArg(args)) {
+            return ProtocolError.BAD_ARGUMENTS.format();
+        }
+        RoomState state = currentRoom.getState();
+        return state.checksum.equals(args) ? "UP_TO_DATE" : "SYNC " + state.checksum + " " + state.fullStateJson;
     }
 
     private String handleLeave(String args) {
