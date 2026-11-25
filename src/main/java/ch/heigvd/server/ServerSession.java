@@ -30,6 +30,8 @@ public class ServerSession {
                 return handleCreate(args);
             case "JOIN":
                 return handleJoin(args);
+            case "LEAVE":
+                return handleLeave(args);
             case "QUIT":
                 return handleQuit(args);
             default:
@@ -72,6 +74,17 @@ public class ServerSession {
         currentRoom = room.get();
         RoomState state = currentRoom.getState();
         return "OK " + state.filename + " " + state.checksum + " " + state.fullStateJson;
+    }
+
+    private String handleLeave(String args) {
+        if (currentRoom == null) {
+            return ProtocolError.INVALID_STATE.format();
+        }
+        if (!args.isEmpty()) {
+            return ProtocolError.BAD_ARGUMENTS.format();
+        }
+        currentRoom = null;
+        return "OK";
     }
 
     private String handleQuit(String args) {
