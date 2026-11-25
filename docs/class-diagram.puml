@@ -38,6 +38,32 @@ package "common" {
 
 ' ================= SERVER SIDE =================
 package "server" {
+    class RoomState {
+        + filename: String
+        + checksum: String
+        + fullStateJson: String
+        + RoomState(filename: String, checksum: String, fullStateJson: String)
+    }
+
+    class PatchResult {
+        + status: Status
+        + checksum: String
+        + fullStateJson: String
+        + {static} ok(newChecksum: String): PatchResult
+        + {static} outdated(validChecksum: String, fullStateJson: String): PatchResult
+        + {static} invalid(): PatchResult
+    }
+
+    interface SyncRoom {
+        + getRoomCode(): String
+        + getState(): RoomState
+        + applyPatch(prevChecksum: String, jsonDeltas: String): PatchResult
+    }
+
+    interface RoomRegistry {
+        + createRoom(filename: String): SyncRoom
+        + getRoom(roomCode: String): Optional<SyncRoom>
+    }
 
     class Room {
         - roomCode: String
@@ -45,8 +71,8 @@ package "server" {
         - lines: List<String>
         - checksum: String
         + Room(roomCode: String, filename: String)
-        + synchronized applyPatch(prevChecksum: String, deltas: List<NetworkDelta>): boolean
-        + synchronized getLines(): List<String>
+        + synchronized applyPatch(prevChecksum: String, jsonDeltas: String): PatchResult
+        + synchronized getState(): RoomState
         + getRoomCode(): String
         + getFilename(): String
         + getChecksum(): String
@@ -54,16 +80,18 @@ package "server" {
 
     class RoomManager {
         - rooms: ConcurrentMap<String, Room>
-        + createRoom(filename: String): Room
-        + getRoom(roomCode: String): Optional<Room>
+        + createRoom(filename: String): SyncRoom
+        + getRoom(roomCode: String): Optional<SyncRoom>
         + removeRoom(roomCode: String): boolean
     }
 
     class ServerSession {
-        - roomManager: RoomManager
-        - currentRoom: Room
-        + ServerSession(roomManager: RoomManager)
+        - roomRegistry: RoomRegistry
+        - currentRoom: SyncRoom
+        + ServerSession(roomRegistry: RoomRegistry)
         + handleMessage(requestLine: String): String
+        + isInRoom(): boolean
+        + close(): void
     }
 
     class TcpServer {
@@ -82,11 +110,17 @@ package "server" {
         + run(): void
     }
 
+    SyncRoom <|.. Room
+    RoomRegistry <|.. RoomManager
     RoomManager "1" *-- "0..*" Room : manages
     Room ..> DiffEngine : applies deltas & hashes
-    ServerSession o-- RoomManager : queries / updates
-    ServerSession o-- Room : tracks active room
-    ServerSession ..> DiffEngine : serializes state
+    RoomRegistry ..> SyncRoom : creates / lookups
+    SyncRoom ..> RoomState : returns
+    SyncRoom ..> PatchResult : returns
+    ServerSession o-- RoomRegistry : queries / creates
+    ServerSession o-- SyncRoom : tracks active room
+    ServerSession ..> RoomState : reads
+    ServerSession ..> PatchResult : inspects
     TcpServer --> RoomManager : shares
     TcpServer *-- ClientHandler : dispatches
     ClientHandler *-- ServerSession : routes requests
