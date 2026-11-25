@@ -2,6 +2,7 @@ package ch.heigvd.common;
 
 import com.github.difflib.patch.DeltaType;
 import java.util.List;
+import java.util.Objects;
 
 public class NetworkDelta {
     public DeltaType type;
@@ -14,6 +15,11 @@ public class NetworkDelta {
         this.pos = pos;
         this.size = size;
         this.lines = lines;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, pos, size, lines);
     }
 
     @Override
