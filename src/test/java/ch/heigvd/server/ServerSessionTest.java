@@ -66,6 +66,38 @@ class ServerSessionTest {
         assertEquals("OK notes.txt 0 []", sessionA.handleMessage("JOIN ROOM1"));
     }
 
+    @Test
+    void rejectsPushAndPullOutsideRoomOrWithBadArgs() {
+        assertEquals("ERROR 2 INVALID_STATE", sessionA.handleMessage("PUSH 0 []"));
+        assertEquals("ERROR 2 INVALID_STATE", sessionA.handleMessage("PULL 0"));
+
+        sessionA.handleMessage("CREATE notes.txt");
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("PUSH"));
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("PUSH 0"));
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("PUSH 0 not_json"));
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("PUSH 0 [\"bad\npayload\"]"));
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("PUSH 0 [\"INVALID_PATCH\"]"));
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("PULL"));
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("PULL 0 extra"));
+    }
+
+    @Test
+    void handlesMultiClientSyncAndConflict() {
+        assertEquals("OK ROOM1", sessionA.handleMessage("CREATE notes.txt"));
+        String init = "[{\"type\":\"INSERT\",\"pos\":0,\"size\":0,\"lines\":[\"Hello World\"]}]";
+        assertEquals("OK chk_v1", sessionA.handleMessage("PUSH 0 " + init));
+        assertEquals(init, registry.lastAppliedJson);
+
+        assertEquals("OK notes.txt chk_v1 " + init, sessionB.handleMessage("JOIN ROOM1"));
+        assertEquals("UP_TO_DATE", sessionB.handleMessage("PULL chk_v1"));
+
+        String aliceEdit = "[{\"type\":\"CHANGE\",\"pos\":0,\"size\":1,\"lines\":[\"Alice\"]}]";
+        assertEquals("OK chk_v2", sessionA.handleMessage("PUSH chk_v1 " + aliceEdit));
+        assertEquals("ERROR 4 OUTDATED_CHECKSUM chk_v2 " + aliceEdit,
+                sessionB.handleMessage("PUSH chk_v1 [\"Bob\"]"));
+        assertEquals("SYNC chk_v2 " + aliceEdit, sessionB.handleMessage("PULL chk_v1"));
+    }
+
     private static class InMemoryRoomRegistry implements RoomRegistry {
         private final Map<String, InMemoryRoom> rooms = new HashMap<>();
         private int counter = 0;
