@@ -1,4 +1,4 @@
-﻿package ch.heigvd.client;
+package ch.heigvd.client;
 
 import ch.heigvd.common.DiffEngine;
 import ch.heigvd.common.NetworkDelta;
