@@ -70,14 +70,40 @@ public class DiffEngine {
         // it is easier, thus, to remake the logic
         ArrayList<String> revised = new ArrayList<String>(original);
 
-        for (NetworkDelta delta : deltas){
-            switch (delta.type){
+        for (NetworkDelta delta : deltas) {
+            if (delta == null) {
+                throw new RuntimeException("Delta cannot be null");
+            }
+            if (delta.pos < 0 || delta.size < 0) {
+                throw new RuntimeException("Delta position and size must be non-negative: pos=" + delta.pos + ", size=" + delta.size);
+            }
+
+            switch (delta.type) {
                 case CHANGE -> {
+                    if (delta.lines == null) {
+                        throw new RuntimeException("CHANGE delta lines cannot be null");
+                    }
+                    if (delta.pos + delta.size > revised.size()) {
+                        throw new RuntimeException("CHANGE delta out of bounds: pos=" + delta.pos + ", size=" + delta.size + ", currentSize=" + revised.size());
+                    }
                     revised.subList(delta.pos, delta.pos + delta.size).clear();
                     revised.addAll(delta.pos, delta.lines);
                 }
-                case DELETE -> revised.subList(delta.pos, delta.pos + delta.size).clear();
-                case INSERT -> revised.addAll(delta.pos, delta.lines);
+                case DELETE -> {
+                    if (delta.pos + delta.size > revised.size()) {
+                        throw new RuntimeException("DELETE delta out of bounds: pos=" + delta.pos + ", size=" + delta.size + ", currentSize=" + revised.size());
+                    }
+                    revised.subList(delta.pos, delta.pos + delta.size).clear();
+                }
+                case INSERT -> {
+                    if (delta.lines == null) {
+                        throw new RuntimeException("INSERT delta lines cannot be null");
+                    }
+                    if (delta.pos > revised.size()) {
+                        throw new RuntimeException("INSERT delta out of bounds: pos=" + delta.pos + ", currentSize=" + revised.size());
+                    }
+                    revised.addAll(delta.pos, delta.lines);
+                }
                 default -> throw new RuntimeException("Trying to apply a patch with a delta of unsupported type.");
             }
         }
