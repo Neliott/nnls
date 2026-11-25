@@ -9,6 +9,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Class managing the client's file, used to read and write in the file,
+ * as well as get the checksum and manage the synchronization
+ */
 public class ClientState {
     private final Path localPath;
     private List<String> syncedLines;
