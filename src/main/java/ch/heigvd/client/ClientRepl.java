@@ -1,5 +1,10 @@
 package ch.heigvd.client;
 
+import ch.heigvd.common.DiffEngine;
+import ch.heigvd.common.NetworkDelta;
+import com.github.difflib.patch.DeltaType;
+import com.github.difflib.patch.PatchFailedException;
+import com.google.gson.JsonSyntaxException;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -8,6 +13,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -75,12 +85,118 @@ public class ClientRepl {
                 println(userOut, "Commands: HELP | CREATE <filepath> | JOIN <roomCode> [dir] | "
                         + "DIFF | STATUS | SHOW | PUSH | PULL | LEAVE | QUIT");
                 return true;
+            case "CREATE":
+                return handleCreate(args, userOut);
+            case "JOIN":
+                return handleJoin(args, userOut);
+            case "LEAVE":
+                return handleLeave(userOut);
             case "QUIT":
                 return handleQuit(userOut);
             default:
                 println(userOut, "Unknown command '" + tokens[0] + "'. Type HELP for commands.");
                 return true;
         }
+    }
+
+    private boolean handleCreate(String args, BufferedWriter userOut) throws IOException {
+        if (!requireRoom(false, userOut) || args.isEmpty()) {
+            if (state == null && args.isEmpty()) {
+                println(userOut, "Usage: CREATE <filepath>");
+            }
+            return true;
+        }
+        Path localPath = Paths.get(args);
+        Path fileName = localPath.getFileName();
+        if (fileName == null || fileName.toString().contains(" ") || fileName.toString().contains("\t")) {
+            println(userOut, "Invalid filename (must be non-empty without spaces): " + args);
+            return true;
+        }
+        LocalState candidate = stateFactory.create(localPath);
+        List<String> lines;
+        try {
+            lines = candidate.readLocalLines();
+        } catch (IOException e) {
+            println(userOut, "Cannot read local file '" + localPath + "': " + e.getMessage());
+            return true;
+        }
+
+        ServerResponse createRes = send("CREATE " + fileName, userOut);
+        if (!isOk(createRes, userOut)) {
+            return true;
+        }
+        state = candidate;
+        currentRoomCode = createRes.getPayload();
+
+        String initJson = lines.isEmpty() ? "[]" : DiffEngine.serializeDeltas(
+                Collections.singletonList(new NetworkDelta(DeltaType.INSERT, 0, 0, lines)));
+        ServerResponse pushRes = send("PUSH 0 " + initJson, userOut);
+        if (pushRes != null && pushRes.getKind() == ServerResponse.Kind.OK) {
+            candidate.updateSyncedState(lines, pushRes.getPayload());
+            println(userOut, "Room " + currentRoomCode + " created. Uploaded '" + fileName
+                    + "' (checksum: " + pushRes.getPayload() + ").");
+        } else if (pushRes != null) {
+            println(userOut, "Room " + currentRoomCode + " created, but initial upload failed:");
+            printUnexpected(pushRes, userOut);
+        }
+        return true;
+    }
+
+    private boolean handleJoin(String args, BufferedWriter userOut) throws IOException {
+        if (!requireRoom(false, userOut) || args.isEmpty()) {
+            if (state == null && args.isEmpty()) {
+                println(userOut, "Usage: JOIN <roomCode> [directory]");
+            }
+            return true;
+        }
+        String[] joinArgs = args.split("\\s+", 2);
+        Path targetDir = (joinArgs.length > 1) ? Paths.get(joinArgs[1]) : Paths.get(".");
+        if (!targetDir.toFile().isDirectory()) {
+            println(userOut, "Directory does not exist: " + targetDir);
+            return true;
+        }
+
+        ServerResponse res = send("JOIN " + joinArgs[0], userOut);
+        if (!isOk(res, userOut)) {
+            return true;
+        }
+        String[] parts = res.getPayload().split(" ", 3);
+        if (parts.length < 3 || parts[0].isEmpty() || parts[1].isEmpty()) {
+            println(userOut, "Received invalid JOIN state from server.");
+            return true;
+        }
+        List<String> remoteLines = decodeState(parts[2], userOut);
+        if (remoteLines == null) {
+            return true;
+        }
+
+        Path targetFile = targetDir.resolve(parts[0]).normalize();
+        LocalState newState = stateFactory.create(targetFile);
+        try {
+            newState.writeLocalLines(remoteLines);
+        } catch (IOException e) {
+            println(userOut, "Failed to write '" + targetFile + "': " + e.getMessage());
+            return true;
+        }
+        newState.updateSyncedState(remoteLines, parts[1]);
+        state = newState;
+        currentRoomCode = joinArgs[0];
+        println(userOut, "Joined room " + currentRoomCode + ". Saved '" + parts[0]
+                + "' to " + targetFile + " (checksum: " + parts[1] + ").");
+        return true;
+    }
+
+    private boolean handleLeave(BufferedWriter userOut) throws IOException {
+        if (!requireRoom(true, userOut)) {
+            return true;
+        }
+        ServerResponse res = send("LEAVE", userOut);
+        if (isOk(res, userOut)) {
+            String leftRoom = currentRoomCode;
+            clearRoomState();
+            println(userOut, "Left room " + leftRoom + ".");
+        }
+        return true;
     }
 
     private boolean handleQuit(BufferedWriter userOut) throws IOException {
@@ -112,6 +228,42 @@ public class ClientRepl {
             return ServerResponse.parse(raw);
         } catch (IllegalArgumentException e) {
             println(userOut, "Malformed server response: " + raw);
+            return null;
+        }
+    }
+
+    private boolean isOk(ServerResponse res, BufferedWriter userOut) throws IOException {
+        if (res == null) {
+            return false;
+        }
+        if (res.getKind() == ServerResponse.Kind.OK) {
+            return true;
+        }
+        printUnexpected(res, userOut);
+        return false;
+    }
+
+    private boolean requireRoom(boolean mustBeInRoom, BufferedWriter userOut) throws IOException {
+        if (mustBeInRoom && state == null) {
+            println(userOut, "Not in a room. Use CREATE or JOIN first.");
+            return false;
+        }
+        if (!mustBeInRoom && state != null) {
+            println(userOut, "Already in room " + currentRoomCode + ". Use LEAVE first.");
+            return false;
+        }
+        return true;
+    }
+
+    private List<String> decodeState(String json, BufferedWriter userOut) throws IOException {
+        try {
+            List<NetworkDelta> deltas = DiffEngine.deserializeDeltas(json);
+            if (deltas == null) {
+                throw new IllegalArgumentException("State JSON must not be null");
+            }
+            return DiffEngine.applyDeltas(new ArrayList<>(), deltas);
+        } catch (IllegalArgumentException | PatchFailedException | JsonSyntaxException e) {
+            println(userOut, "Failed to decode remote document state: " + e.getMessage());
             return null;
         }
     }
