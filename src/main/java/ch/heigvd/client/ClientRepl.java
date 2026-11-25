@@ -100,7 +100,7 @@ public class ClientRepl {
             case "PUSH":
                 return handlePush(userIn, userOut);
             case "PULL":
-                return handlePull(userOut);
+                return handlePull(userIn, userOut);
             case "LEAVE":
                 return handleLeave(userOut);
             case "QUIT":
@@ -169,7 +169,7 @@ public class ClientRepl {
             }
             return true;
         }
-        String[] joinArgs = args.split("\\s+", 2);
+        String[] joinArgs = args.split("\\s+", 2); // Splits a string into a maximum of two parts at the first group of whitespace characters
         Path targetDir = (joinArgs.length > 1) ? Paths.get(joinArgs[1]) : Paths.get(".");
         if (!targetDir.toFile().isDirectory()) {
             println(userOut, "Directory does not exist: " + targetDir);
@@ -304,9 +304,16 @@ public class ClientRepl {
         if (remoteLines == null) {
             return true;
         }
+        return resolveConflict(parts[0], remoteLines, userIn, userOut);
+    }
 
-        // 2. Prompt user to accept remote version or keep local edits
-        println(userOut, "Conflict detected (server checksum: " + parts[0] + ").");
+    /** Runs the interactive conflict prompt (1: accept remote, 2: keep local and rebase); returns false on EOF. */
+    private boolean resolveConflict(
+            String validChecksum,
+            List<String> remoteLines,
+            BufferedReader userIn,
+            BufferedWriter userOut) throws IOException {
+        println(userOut, "Conflict detected (server checksum: " + validChecksum + ").");
         println(userOut, "  [1] Accept remote version (overwrite local file)");
         println(userOut, "  [2] Keep local edits (rebase baseline for re-push)");
 
@@ -319,11 +326,11 @@ public class ClientRepl {
             }
             switch (choice.trim()) {
                 case "1":
-                    applyRemote(parts[0], remoteLines, "Accepted remote version", userOut);
+                    applyRemote(validChecksum, remoteLines, "Accepted remote version", userOut);
                     return true;
                 case "2":
-                    state.keepLocalAndRebase(remoteLines, parts[0]);
-                    println(userOut, "Kept local edits; baseline rebased to " + parts[0] + ".");
+                    state.keepLocalAndRebase(remoteLines, validChecksum);
+                    println(userOut, "Kept local edits; baseline rebased to " + validChecksum + ".");
                     return true;
                 default:
                     println(userOut, "Invalid choice. Enter 1 or 2.");
@@ -332,8 +339,8 @@ public class ClientRepl {
         }
     }
 
-    /** Fetches remote updates if the server checksum changed; returns true to continue the REPL. */
-    private boolean handlePull(BufferedWriter userOut) throws IOException {
+    /** Fetches remote updates if the server checksum changed, prompting on local conflict; returns true to continue. */
+    private boolean handlePull(BufferedReader userIn, BufferedWriter userOut) throws IOException {
         // 1. Query server for updates against current checksum
         if (!requireRoom(true, userOut)) {
             return true;
@@ -351,17 +358,25 @@ public class ClientRepl {
             return true;
         }
 
-        // 2. Decode SYNC payload and overwrite local file
+        // 2. Decode SYNC payload and check for unpushed local edits before overwriting
         String[] parts = res.getPayload().split(" ", 2);
         if (parts.length < 2 || parts[0].isEmpty()) {
             println(userOut, "Received invalid SYNC payload from server.");
             return true;
         }
         List<String> remoteLines = decodeState(parts[1], userOut);
-        if (remoteLines != null) {
-            applyRemote(parts[0], remoteLines, "Pulled updates from server", userOut);
+        if (remoteLines == null) {
+            return true;
         }
-        return true;
+        List<NetworkDelta> localDeltas = readDiff(userOut);
+        if (localDeltas == null) {
+            return true;
+        }
+        if (localDeltas.isEmpty()) {
+            applyRemote(parts[0], remoteLines, "Pulled updates from server", userOut);
+            return true;
+        }
+        return resolveConflict(parts[0], remoteLines, userIn, userOut);
     }
 
     /** Leaves the active room and resets local sync state; returns true to continue the REPL. */
