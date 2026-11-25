@@ -22,7 +22,14 @@ public class DiffEngine {
     public static String computeSha256(List<String> lines){
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] shaData = digest.digest(lines.toString().getBytes(StandardCharsets.UTF_8));
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < lines.size(); ++i){
+                builder.append(lines.get(i));
+                if (i != lines.size()-1){
+                    builder.append("\n");
+                }
+            }
+            byte[] shaData = digest.digest(builder.toString().getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(shaData);
         }catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
