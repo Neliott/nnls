@@ -56,6 +56,16 @@ class ServerSessionTest {
         assertEquals("ERROR 2 INVALID_STATE", sessionA.handleMessage("JOIN ROOM1"));
     }
 
+    @Test
+    void handlesLeaveLifecycle() {
+        assertEquals("ERROR 2 INVALID_STATE", sessionA.handleMessage("LEAVE"));
+        sessionA.handleMessage("CREATE notes.txt");
+        assertEquals("ERROR 5 BAD_ARGUMENTS", sessionA.handleMessage("LEAVE extra"));
+        assertEquals("OK", sessionA.handleMessage("LEAVE"));
+        assertFalse(sessionA.isInRoom());
+        assertEquals("OK notes.txt 0 []", sessionA.handleMessage("JOIN ROOM1"));
+    }
+
     private static class InMemoryRoomRegistry implements RoomRegistry {
         private final Map<String, InMemoryRoom> rooms = new HashMap<>();
         private int counter = 0;
