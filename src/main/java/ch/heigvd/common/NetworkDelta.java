@@ -10,6 +10,13 @@ public class NetworkDelta {
     public int size;
     public List<String> lines;
 
+    public NetworkDelta(){
+        type = DeltaType.EQUAL;
+        pos = 0;
+        size = 0;
+        lines = List.of();
+    }
+
     public NetworkDelta(DeltaType type, int pos, int size, List<String> lines){
         this.type = type;
         this.pos = pos;
