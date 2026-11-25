@@ -89,6 +89,13 @@ public class ClientRepl {
                 return handleCreate(args, userOut);
             case "JOIN":
                 return handleJoin(args, userOut);
+            case "DIFF":
+            case "STATUS":
+                return handleDiff(userOut);
+            case "SHOW":
+                return handleShow(userOut);
+            case "PULL":
+                return handlePull(userOut);
             case "LEAVE":
                 return handleLeave(userOut);
             case "QUIT":
@@ -186,6 +193,75 @@ public class ClientRepl {
         return true;
     }
 
+    private boolean handleDiff(BufferedWriter userOut) throws IOException {
+        if (!requireRoom(true, userOut)) {
+            return true;
+        }
+        List<NetworkDelta> deltas = readDiff(userOut);
+        if (deltas == null) {
+            return true;
+        }
+        if (deltas.isEmpty()) {
+            println(userOut, "No local changes (checksum: " + state.getCurrentChecksum() + ").");
+            return true;
+        }
+        println(userOut, "Local changes (" + deltas.size() + " delta(s)):");
+        for (NetworkDelta d : deltas) {
+            println(userOut, "  " + d.type + " at line " + d.pos + " (size " + d.size + "): " + d.lines);
+        }
+        return true;
+    }
+
+    private boolean handleShow(BufferedWriter userOut) throws IOException {
+        if (!requireRoom(true, userOut)) {
+            return true;
+        }
+        List<String> lines;
+        try {
+            lines = state.readLocalLines();
+        } catch (IOException e) {
+            println(userOut, "Cannot read local file: " + e.getMessage());
+            return true;
+        }
+        println(userOut, "--- " + state.getLocalPath() + " (checksum: " + state.getCurrentChecksum() + ") ---");
+        if (lines.isEmpty()) {
+            println(userOut, "(empty file)");
+        } else {
+            for (int i = 0; i < lines.size(); i++) {
+                println(userOut, i + ": " + lines.get(i));
+            }
+        }
+        return true;
+    }
+
+    private boolean handlePull(BufferedWriter userOut) throws IOException {
+        if (!requireRoom(true, userOut)) {
+            return true;
+        }
+        ServerResponse res = send("PULL " + state.getCurrentChecksum(), userOut);
+        if (res == null) {
+            return true;
+        }
+        if (res.getKind() == ServerResponse.Kind.UP_TO_DATE) {
+            println(userOut, "Already up to date (checksum: " + state.getCurrentChecksum() + ").");
+            return true;
+        }
+        if (res.getKind() != ServerResponse.Kind.SYNC) {
+            printUnexpected(res, userOut);
+            return true;
+        }
+        String[] parts = res.getPayload().split(" ", 2);
+        if (parts.length < 2 || parts[0].isEmpty()) {
+            println(userOut, "Received invalid SYNC payload from server.");
+            return true;
+        }
+        List<String> remoteLines = decodeState(parts[1], userOut);
+        if (remoteLines != null) {
+            applyRemote(parts[0], remoteLines, "Pulled updates from server", userOut);
+        }
+        return true;
+    }
+
     private boolean handleLeave(BufferedWriter userOut) throws IOException {
         if (!requireRoom(true, userOut)) {
             return true;
@@ -215,6 +291,26 @@ public class ClientRepl {
         }
         printUnexpected(res, userOut);
         return true;
+    }
+
+    private List<NetworkDelta> readDiff(BufferedWriter userOut) throws IOException {
+        try {
+            return state.computeLocalDiff();
+        } catch (IOException e) {
+            println(userOut, "Cannot read local file: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void applyRemote(
+            String checksum, List<String> remoteLines, String prefix, BufferedWriter userOut)
+            throws IOException {
+        try {
+            state.acceptRemote(remoteLines, checksum);
+            println(userOut, prefix + " (checksum: " + checksum + ").");
+        } catch (IOException e) {
+            println(userOut, "Failed to update local file: " + e.getMessage());
+        }
     }
 
     private ServerResponse send(String request, BufferedWriter userOut) throws IOException {
