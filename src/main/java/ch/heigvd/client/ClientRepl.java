@@ -94,6 +94,8 @@ public class ClientRepl {
                 return handleDiff(userOut);
             case "SHOW":
                 return handleShow(userOut);
+            case "PUSH":
+                return handlePush(userIn, userOut);
             case "PULL":
                 return handlePull(userOut);
             case "LEAVE":
@@ -232,6 +234,80 @@ public class ClientRepl {
             }
         }
         return true;
+    }
+
+    private boolean handlePush(BufferedReader userIn, BufferedWriter userOut) throws IOException {
+        if (!requireRoom(true, userOut)) {
+            return true;
+        }
+        List<String> localLines;
+        try {
+            localLines = state.readLocalLines();
+        } catch (IOException e) {
+            println(userOut, "Cannot read local file: " + e.getMessage());
+            return true;
+        }
+        List<NetworkDelta> deltas = readDiff(userOut);
+        if (deltas == null) {
+            return true;
+        }
+        if (deltas.isEmpty()) {
+            println(userOut, "No local changes to push.");
+            return true;
+        }
+
+        ServerResponse res = send(
+                "PUSH " + state.getCurrentChecksum() + " " + DiffEngine.serializeDeltas(deltas), userOut);
+        if (res == null) {
+            return true;
+        }
+        if (res.getKind() == ServerResponse.Kind.OK) {
+            state.updateSyncedState(localLines, res.getPayload());
+            println(userOut, "Push successful. New checksum: " + res.getPayload());
+            return true;
+        }
+        if (res.getKind() == ServerResponse.Kind.ERROR && res.getErrorCode() == 4) {
+            return handleConflict(res.getErrorData(), userIn, userOut);
+        }
+        printUnexpected(res, userOut);
+        return true;
+    }
+
+    private boolean handleConflict(
+            String errorData, BufferedReader userIn, BufferedWriter userOut) throws IOException {
+        String[] parts = errorData.split(" ", 2);
+        if (parts.length < 2 || parts[0].isEmpty()) {
+            println(userOut, "Conflict detected, but server omitted valid state data.");
+            return true;
+        }
+        List<String> remoteLines = decodeState(parts[1], userOut);
+        if (remoteLines == null) {
+            return true;
+        }
+        println(userOut, "Conflict detected (server checksum: " + parts[0] + ").");
+        println(userOut, "  [1] Accept remote version (overwrite local file)");
+        println(userOut, "  [2] Keep local edits (rebase baseline for re-push)");
+
+        while (true) {
+            userOut.write("Choice (1/2): ");
+            userOut.flush();
+            String choice = userIn.readLine();
+            if (choice == null) {
+                return false;
+            }
+            switch (choice.trim()) {
+                case "1":
+                    applyRemote(parts[0], remoteLines, "Accepted remote version", userOut);
+                    return true;
+                case "2":
+                    state.keepLocalAndRebase(remoteLines, parts[0]);
+                    println(userOut, "Kept local edits; baseline rebased to " + parts[0] + ".");
+                    return true;
+                default:
+                    println(userOut, "Invalid choice. Enter 1 or 2.");
+                    break;
+            }
+        }
     }
 
     private boolean handlePull(BufferedWriter userOut) throws IOException {
