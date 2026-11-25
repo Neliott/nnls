@@ -37,6 +37,9 @@ public class DiffEngine {
     }
 
     public static List<NetworkDelta> computeDeltas(List<String> original, List<String> revised){
+        if (original == null) throw new RuntimeException("Original cannot be null");
+        if (revised == null) throw new RuntimeException("Revised cannot be null");
+
         Patch<String> patch = DiffUtils.diff(original, revised);
         List<AbstractDelta<String>> deltas = patch.getDeltas();
         List<NetworkDelta> networkDeltas = new ArrayList<>();
@@ -61,7 +64,10 @@ public class DiffEngine {
         return networkDeltas;
     }
 
-    public static List<String> applyDeltas(List<String> original, List<NetworkDelta> deltas) throws PatchFailedException {
+    public static List<String> applyDeltas(List<String> original, List<NetworkDelta> deltas) {
+        if (original == null) throw new RuntimeException("Original text cannot be null");
+        if (deltas == null) throw new RuntimeException("Deltas cannot be null");
+
         //using DiffUtils here would mean having to reconstruct the source chunk,
         // it is easier, thus, to remake the logic
         ArrayList<String> revised = new ArrayList<String>(original);
