@@ -55,8 +55,7 @@ public class ClientState {
 
     public void acceptRemote(List<String> remoteLines, String validChecksum){
         writeLocalLines(remoteLines);
-        syncedLines = new ArrayList<>(remoteLines);
-        syncedChecksum = validChecksum;
+        updateSyncedState(remoteLines, validChecksum);
     }
 
     public void keepLocalAndRebase(List<String> remoteLines, String validChecksum){
