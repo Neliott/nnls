@@ -24,7 +24,7 @@ public class ClientState {
         syncedChecksum = "0";
     }
 
-    public List<String> readLocalLines(){
+    public List<String> readLocalLines() throws IOException {
         try(FileReader reader = new FileReader(localPath.toFile(), StandardCharsets.UTF_8);
             BufferedReader in = new BufferedReader(reader)) {
             ArrayList<String> list = new ArrayList<>();
@@ -33,27 +33,23 @@ public class ClientState {
                 list.add(r);
             }
             return list;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 
-    public void writeLocalLines(List<String> lines){
+    public void writeLocalLines(List<String> lines) throws IOException {
         try(FileWriter writer = new FileWriter(localPath.toFile(), StandardCharsets.UTF_8);
             BufferedWriter in = new BufferedWriter(writer)) {
             for (String line : lines){
                 in.write(line+System.lineSeparator());
             }
             in.flush();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
-    public List<NetworkDelta> computeLocalDiff(){
+    public List<NetworkDelta> computeLocalDiff() throws IOException {
         return DiffEngine.computeDeltas(syncedLines, readLocalLines());
     }
 
-    public void acceptRemote(List<String> remoteLines, String validChecksum){
+    public void acceptRemote(List<String> remoteLines, String validChecksum) throws IOException {
         writeLocalLines(remoteLines);
         updateSyncedState(remoteLines, validChecksum);
     }
@@ -75,7 +71,7 @@ public class ClientState {
         return syncedChecksum;
     }
 
-    public String getCurrentChecksum(){
+    public String getCurrentChecksum() throws IOException {
         return DiffEngine.computeSha256(readLocalLines());
     }
 }
