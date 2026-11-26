@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Class managing the client's file, used to read and write in the file,
@@ -19,6 +20,7 @@ public class ClientState {
     private String syncedChecksum;
 
     public ClientState(Path path){
+        Objects.requireNonNull(path, "path must not be null");
         this.localPath = path;
         syncedLines = List.of();
         syncedChecksum = "0";
@@ -37,9 +39,11 @@ public class ClientState {
     }
 
     public void writeLocalLines(List<String> lines) throws IOException {
+        Objects.requireNonNull(lines, "lines must not be null");
         try(FileWriter writer = new FileWriter(localPath.toFile(), StandardCharsets.UTF_8);
             BufferedWriter in = new BufferedWriter(writer)) {
             for (String line : lines){
+                Objects.requireNonNull(line, "line must not be null");
                 in.write(line+System.lineSeparator());
             }
             in.flush();
@@ -59,6 +63,8 @@ public class ClientState {
     }
 
     public void updateSyncedState(List<String> lines, String checksum){
+        Objects.requireNonNull(lines, "lines must not be null");
+        Objects.requireNonNull(checksum, "checksum must not be null");
         syncedLines = new ArrayList<>(lines);
         syncedChecksum = checksum;
     }
