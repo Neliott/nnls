@@ -261,7 +261,7 @@ class ClientReplTest {
         public Path getLocalPath() { return path; }
 
         @Override
-        public String getCurrentChecksum() { return checksum; }
+        public String getSyncedChecksum() { return checksum; }
     }
 
     private static class SessionTransport implements ClientTransport {

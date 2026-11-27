@@ -28,6 +28,6 @@ public interface LocalState {
     /** Returns the path of the tracked file on disk. */
     Path getLocalPath();
 
-    /** Returns the SHA-256 hash of the current reference snapshot (or "0" before initial upload). */
-    String getCurrentChecksum();
+    /** Returns the SHA-256 hash of the synced reference snapshot - so last version from the server (or "0" before initial upload). */
+    String getSyncedChecksum();
 }

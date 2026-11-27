@@ -144,7 +144,7 @@ package "client" {
         + keepLocalAndRebase(remoteLines: List<String>, validChecksum: String): void
         + updateSyncedState(lines: List<String>, checksum: String): void
         + getLocalPath(): Path
-        + getCurrentChecksum(): String
+        + getSyncedChecksum(): String
     }
 
     interface LocalStateFactory {
@@ -177,7 +177,7 @@ package "client" {
         + keepLocalAndRebase(remoteLines: List<String>, validChecksum: String): void
         + updateSyncedState(lines: List<String>, checksum: String): void
         + getLocalPath(): Path
-        + getCurrentChecksum(): String
+        + getSyncedChecksum(): String
     }
 
     class ClientRepl {

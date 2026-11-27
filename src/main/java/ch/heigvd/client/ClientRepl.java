@@ -2,8 +2,6 @@ package ch.heigvd.client;
 
 import ch.heigvd.common.DiffEngine;
 import ch.heigvd.common.NetworkDelta;
-import com.github.difflib.patch.PatchFailedException;
-import com.google.gson.JsonSyntaxException;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -218,7 +216,7 @@ public class ClientRepl {
             return true;
         }
         if (deltas.isEmpty()) {
-            println(userOut, "No local changes (checksum: " + state.getCurrentChecksum() + ").");
+            println(userOut, "No local changes (checksum: " + state.getSyncedChecksum() + ").");
             return true;
         }
         println(userOut, "Local changes (" + deltas.size() + " delta(s)):");
@@ -240,7 +238,7 @@ public class ClientRepl {
             println(userOut, "Cannot read local file: " + e.getMessage());
             return true;
         }
-        println(userOut, "--- " + state.getLocalPath() + " (checksum: " + state.getCurrentChecksum() + ") ---");
+        println(userOut, "--- " + state.getLocalPath() + " (checksum: " + state.getSyncedChecksum() + ") ---");
         if (lines.isEmpty()) {
             println(userOut, "(empty file)");
         } else {
@@ -275,7 +273,7 @@ public class ClientRepl {
 
         // 2. Send patch and handle OK or conflict (ERROR 4)
         ServerResponse res = send(
-                "PUSH " + state.getCurrentChecksum() + " " + DiffEngine.serializeDeltas(deltas), userOut);
+                "PUSH " + state.getSyncedChecksum() + " " + DiffEngine.serializeDeltas(deltas), userOut);
         if (res == null) {
             return true;
         }
@@ -345,12 +343,12 @@ public class ClientRepl {
         if (!requireRoom(true, userOut)) {
             return true;
         }
-        ServerResponse res = send("PULL " + state.getCurrentChecksum(), userOut);
+        ServerResponse res = send("PULL " + state.getSyncedChecksum(), userOut);
         if (res == null) {
             return true;
         }
         if (res.getKind() == ServerResponse.Kind.UP_TO_DATE) {
-            println(userOut, "Already up to date (checksum: " + state.getCurrentChecksum() + ").");
+            println(userOut, "Already up to date (checksum: " + state.getSyncedChecksum() + ").");
             return true;
         }
         if (res.getKind() != ServerResponse.Kind.SYNC) {
@@ -482,7 +480,7 @@ public class ClientRepl {
                 throw new IllegalArgumentException("State JSON must not be null");
             }
             return DiffEngine.applyDeltas(new ArrayList<>(), deltas);
-        } catch (IllegalArgumentException | PatchFailedException | JsonSyntaxException e) {
+        } catch (RuntimeException e) {
             println(userOut, "Failed to decode remote document state: " + e.getMessage());
             return null;
         }
