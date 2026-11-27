@@ -103,6 +103,6 @@ class ClientStateTest {
         Path missingFile = tempDir.resolve("does-not-exist.txt");
         ClientState missingState = new ClientState(missingFile);
 
-        assertThrows(RuntimeException.class, missingState::readLocalLines);
+        assertThrows(IOException.class, missingState::readLocalLines);
     }
 }
