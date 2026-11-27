@@ -20,8 +20,6 @@ import java.util.Objects;
 
 /** Interactive terminal REPL client for collaborative synchronization over NNLSP. */
 public class ClientRepl {
-    private static final String EOL = "\n";
-
     private final ClientTransport client;
     private final LocalStateFactory stateFactory;
     private final InputStream in;
@@ -498,7 +496,8 @@ public class ClientRepl {
     }
 
     private void println(BufferedWriter userOut, String message) throws IOException {
-        userOut.write(message + EOL);
+        userOut.write(message);
+        userOut.newLine(); // Writes the OS-specific line separator (System.lineSeparator()). Ok cause we're in the console here!
         userOut.flush();
     }
 
