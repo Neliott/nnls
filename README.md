@@ -36,8 +36,8 @@ java -jar target/nnls-1.0-SNAPSHOT.jar --help
 
 ### Subcommands
 
-* `command1`: Description of command 1.
-* `command2`: Description of command 2.
+* `client`: This subcommand connects the application to the server, using given host and port, and launches the NNLS client REPL.
+* `server`: This subcommand configures and launches the NNLS server on a given port with a given number of threads.
 
 ---
 
