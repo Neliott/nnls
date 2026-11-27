@@ -85,6 +85,17 @@ docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/<username>/nnl
 
 3. **Make the package public** on GitHub (`https://github.com/<username>?tab=packages` > **Package settings** > **Danger Zone** > **Change visibility** > **Public**) so anyone can pull and run it.
 
+### Run Server and Clients with Docker Compose
+
+An example Compose configuration is provided in [compose.yaml](compose.yaml) (starting a `server` and a `client` connected on Compose's default network). From the repository root:
+
+```sh
+docker compose up -d
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
 ---
 
 ## Contributing

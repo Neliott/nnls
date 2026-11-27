@@ -1,0 +1,10 @@
+services:
+  server:
+    image: ghcr.io/<username>/nnls:1.0
+    ports:
+      - 4242:4242
+    command: ["server", "-p", "4242"]
+
+  client:
+    image: ghcr.io/<username>/nnls:1.0
+    command: ["client", "-H", "server", "-p", "4242"]
