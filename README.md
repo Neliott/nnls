@@ -85,6 +85,22 @@ docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/<username>/nnl
 
 3. **Make the package public** on GitHub (`https://github.com/<username>?tab=packages` > **Package settings** > **Danger Zone** > **Change visibility** > **Public**) so anyone can pull and run it.
 
+### Alternative: Pull Latest CI Images (`main` / `develop`)
+
+Every push to `main` or `develop` runs the [CI workflow](.github/workflows/ci.yml), which fails if any JUnit test fails and otherwise publishes the latest multi-architecture Docker image to GHCR (as well as the `nnls-jar` build artifact in GitHub Actions):
+
+```sh
+# Latest image from main (also tagged :latest)
+docker pull ghcr.io/<username>/nnls:main
+docker run --rm ghcr.io/<username>/nnls:main
+
+# Latest image from develop
+docker pull ghcr.io/<username>/nnls:develop
+docker run --rm ghcr.io/<username>/nnls:develop
+```
+
+You can also use `ghcr.io/<username>/nnls:main` or `ghcr.io/<username>/nnls:develop` in [compose.yaml](compose.yaml) instead of `ghcr.io/<username>/nnls:1.0`.
+
 ### Run Server and Clients with Docker Compose
 
 An example Compose configuration is provided in [compose.yaml](compose.yaml) (starting a `server` and a `client` connected on Compose's default network). From the repository root:
