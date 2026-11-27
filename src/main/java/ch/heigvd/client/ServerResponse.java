@@ -77,10 +77,19 @@ public class ServerResponse {
         return new ServerResponse(Kind.ERROR, rest, code, parts[1].trim(), data);
     }
 
+    /** Returns the parsed response kind. */
     public Kind getKind() { return kind; }
+
+    /** Returns the response payload after the keyword, or "" if none. */
     public String getPayload() { return payload; }
+
+    /** Returns the numeric NNLSP error code, or -1 if this response is not an error. */
     public int getErrorCode() { return errorCode; }
+
+    /** Returns the error reason token, or null if this response is not an error. */
     public String getErrorReason() { return errorReason; }
+
+    /** Returns optional trailing error data (e.g., conflict state), or "" if absent or not an error. */
     public String getErrorData() { return errorData; }
 
     /** Translates a server ERROR code into a human-readable message for the terminal user. */
