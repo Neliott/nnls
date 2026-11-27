@@ -14,7 +14,7 @@ import java.util.Objects;
  * Class managing the client's file, used to read and write in the file,
  * as well as get the checksum and manage the synchronization
  */
-public class ClientState {
+public class ClientState implements LocalState {
     private final Path localPath;
     private List<String> syncedLines;
     private String syncedChecksum;
