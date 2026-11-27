@@ -49,6 +49,44 @@ java -jar target/nnls-1.0-SNAPSHOT.jar --help
 
 ---
 
+## Docker
+
+### Build the Image
+
+Since the `Dockerfile` packages the compiled JAR directly, build the project with Maven first:
+
+```sh
+./mvnw clean package
+docker build -t nnls .
+```
+
+To target a specific processor architecture (for example, `linux/amd64` from an Apple Silicon Mac):
+
+```sh
+docker build --platform linux/amd64 -t nnls .
+```
+
+### Publish to GitHub Container Registry (`ghcr.io`)
+
+1. **Create a token** on GitHub: **Settings** > **Developer settings** > **Personal access tokens** > **Tokens (classic)**, with the `write:packages` scope.
+2. **Log in, tag (in lowercase), and push:**
+
+```sh
+docker login ghcr.io -u <username>
+docker tag nnls ghcr.io/<username>/nnls:1.0
+docker push ghcr.io/<username>/nnls:1.0
+```
+
+Or build and push a multi-architecture image directly with `buildx`:
+
+```sh
+docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/<username>/nnls:1.0 --push .
+```
+
+3. **Make the package public** on GitHub (`https://github.com/<username>?tab=packages` > **Package settings** > **Danger Zone** > **Change visibility** > **Public**) so anyone can pull and run it.
+
+---
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on code style, commit conventions, and our workflow.
