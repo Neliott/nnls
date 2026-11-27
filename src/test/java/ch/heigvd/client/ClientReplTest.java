@@ -12,7 +12,6 @@ import ch.heigvd.server.RoomState;
 import ch.heigvd.server.ServerSession;
 import ch.heigvd.server.SyncRoom;
 import com.github.difflib.patch.DeltaType;
-import com.github.difflib.patch.PatchFailedException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -359,7 +358,7 @@ class ClientReplTest {
                     lines = DiffEngine.applyDeltas(lines, DiffEngine.deserializeDeltas(jsonDeltas));
                     checksum = DiffEngine.computeSha256(lines);
                     return PatchResult.ok(checksum);
-                } catch (PatchFailedException | RuntimeException e) {
+                } catch (RuntimeException e) {
                     return PatchResult.invalid();
                 }
             }
