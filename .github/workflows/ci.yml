@@ -5,7 +5,6 @@ on:
     branches:
       - main
       - develop
-      - feat/docker-packaging
   pull_request:
     branches:
       - main
@@ -73,11 +72,10 @@ jobs:
         if: github.event_name == 'push'
         run: |
           IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
-          TAG="${GITHUB_REF_NAME//\//-}"
           if [ "${GITHUB_REF_NAME}" = "main" ]; then
             docker buildx build --platform linux/amd64,linux/arm64 \
               -t "${IMAGE}:main" -t "${IMAGE}:latest" --push .
           else
             docker buildx build --platform linux/amd64,linux/arm64 \
-              -t "${IMAGE}:${TAG}" --push .
+              -t "${IMAGE}:${GITHUB_REF_NAME}" --push .
           fi
