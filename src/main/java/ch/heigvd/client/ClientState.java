@@ -41,12 +41,12 @@ public class ClientState implements LocalState {
     public void writeLocalLines(List<String> lines) throws IOException {
         Objects.requireNonNull(lines, "lines must not be null");
         try(FileWriter writer = new FileWriter(localPath.toFile(), StandardCharsets.UTF_8);
-            BufferedWriter in = new BufferedWriter(writer)) {
+            BufferedWriter out = new BufferedWriter(writer)) {
             for (String line : lines){
                 Objects.requireNonNull(line, "line must not be null");
-                in.write(line+System.lineSeparator());
+                out.write(line+System.lineSeparator());
             }
-            in.flush();
+            out.flush();
         }
     }
     public List<NetworkDelta> computeLocalDiff() throws IOException {
