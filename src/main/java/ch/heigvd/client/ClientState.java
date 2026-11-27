@@ -44,7 +44,8 @@ public class ClientState implements LocalState {
             BufferedWriter out = new BufferedWriter(writer)) {
             for (String line : lines){
                 Objects.requireNonNull(line, "line must not be null");
-                out.write(line+System.lineSeparator());
+                out.write(line);
+                out.newLine();
             }
             out.flush();
         }
