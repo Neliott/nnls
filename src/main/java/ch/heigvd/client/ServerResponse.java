@@ -10,6 +10,14 @@ public class ServerResponse {
     private final String errorReason;
     private final String errorData;
 
+    private ServerResponse(Kind kind) {
+        this(kind, "");
+    }
+
+    private ServerResponse(Kind kind, String payload) {
+        this(kind, payload, -1, null, "");
+    }
+
     private ServerResponse(
             Kind kind, String payload, int errorCode, String errorReason, String errorData) {
         this.kind = kind;
@@ -31,22 +39,22 @@ public class ServerResponse {
 
         switch (keyword) {
             case "OK":
-                return new ServerResponse(Kind.OK, rest, -1, null, "");
+                return new ServerResponse(Kind.OK, rest);
             case "UP_TO_DATE":
                 if (!rest.isEmpty()) {
                     throw new IllegalArgumentException("Unexpected payload for UP_TO_DATE");
                 }
-                return new ServerResponse(Kind.UP_TO_DATE, "", -1, null, "");
+                return new ServerResponse(Kind.UP_TO_DATE);
             case "SYNC":
                 if (rest.isEmpty()) {
                     throw new IllegalArgumentException("Missing payload for SYNC");
                 }
-                return new ServerResponse(Kind.SYNC, rest, -1, null, "");
+                return new ServerResponse(Kind.SYNC, rest);
             case "BYE":
                 if (!rest.isEmpty()) {
                     throw new IllegalArgumentException("Unexpected payload for BYE");
                 }
-                return new ServerResponse(Kind.BYE, "", -1, null, "");
+                return new ServerResponse(Kind.BYE);
             case "ERROR":
                 return parseError(rest);
             default:
