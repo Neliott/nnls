@@ -34,10 +34,24 @@ The executable JAR is generated under `target/nnls-1.0-SNAPSHOT.jar`.
 java -jar target/nnls-1.0-SNAPSHOT.jar --help
 ```
 
+### Global Options
+
+* `-h`, `--help`: Display usage and help message.
+* `-V`, `--version`: Print application version.
+
 ### Subcommands
 
-* `client`: This subcommand connects the application to the server, using given host and port, and launches the NNLS client REPL.
-* `server`: This subcommand configures and launches the NNLS server on a given port with a given number of threads.
+#### 1.`client`
+This subcommand connects the application to the server, using given host and port, and launches the NNLS client REPL.
+
+* `-H`, `--host <string>`: *(Required)* Host name of the NNLS server to connect to.
+* `-p`, `--port <integer>`: *(Optional)* Port of the NNLS server to connect to.
+
+#### 2. `server`
+This subcommand configures and launches the NNLS server on a given port with a given number of threads.
+
+* `-t`, `--threads <integer>`: *(Optional)* Maximum number of threads/rooms in the server at a time.
+* `-p`, `--port <integer>`: *(Optional)* NNLS Server port to expose as the server.
 
 ---
 
