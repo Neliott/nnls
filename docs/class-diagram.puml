@@ -129,6 +129,33 @@ package "server" {
 ' ================= CLIENT SIDE =================
 package "client" {
 
+    interface ClientTransport {
+        + connect(): void
+        + sendRequest(request: String): String
+        + isConnected(): boolean
+        + close(): void
+    }
+
+    interface LocalState {
+        + readLocalLines(): List<String>
+        + writeLocalLines(lines: List<String>): void
+        + computeLocalDiff(): List<NetworkDelta>
+        + acceptRemote(remoteLines: List<String>, validChecksum: String): void
+        + keepLocalAndRebase(remoteLines: List<String>, validChecksum: String): void
+        + updateSyncedState(lines: List<String>, checksum: String): void
+        + getLocalPath(): Path
+        + getSyncedChecksum(): String
+    }
+
+    interface LocalStateFactory {
+        + create(localPath: Path): LocalState
+    }
+
+    class ServerResponse {
+        + {static} parse(rawLine: String): ServerResponse
+        + formatErrorMessage(): String
+    }
+
     class TcpClient {
         - host: String
         - port: int
@@ -141,7 +168,7 @@ package "client" {
     class ClientState {
         - localPath: Path
         - syncedLines: List<String>
-        - currentChecksum: String
+        - syncedChecksum: String
         + ClientState(localPath: Path)
         + readLocalLines(): List<String>
         + writeLocalLines(lines: List<String>): void
@@ -151,18 +178,25 @@ package "client" {
         + updateSyncedState(lines: List<String>, checksum: String): void
         + getLocalPath(): Path
         + getCurrentChecksum(): String
+        + getSyncedChecksum(): String
     }
 
     class ClientRepl {
-        - client: TcpClient
-        - state: ClientState
-        + ClientRepl(host: String, port: int)
+        - client: ClientTransport
+        - stateFactory: LocalStateFactory
+        - state: LocalState
+        + ClientRepl(client: ClientTransport, stateFactory: LocalStateFactory, in: InputStream, out: OutputStream)
         + start(): void
     }
 
+    ClientTransport <|.. TcpClient
+    LocalState <|.. ClientState
+    LocalStateFactory ..> LocalState : creates
     ClientState ..> DiffEngine : diffs & hashes
-    ClientRepl *-- TcpClient : transport
-    ClientRepl *-- ClientState : local state
+    ClientRepl o-- ClientTransport : transport
+    ClientRepl o-- LocalStateFactory : creates state
+    ClientRepl o-- LocalState : local state
+    ClientRepl ..> ServerResponse : parses responses
     ClientRepl ..> DiffEngine : diffs & serialization
 }
 

@@ -1,0 +1,10 @@
+services:
+  server:
+    image: ghcr.io/neliott/nnls:latest
+    ports:
+      - 4242:4242
+    command: ["server", "-p", "4242"]
+
+  client:
+    image: ghcr.io/neliott/nnls:latest
+    command: ["client", "-H", "server", "-p", "4242"]

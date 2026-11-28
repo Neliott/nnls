@@ -49,6 +49,71 @@ java -jar target/nnls-1.0-SNAPSHOT.jar --help
 
 ---
 
+## Docker
+
+### Build the Image
+
+Since the `Dockerfile` packages the compiled JAR directly, build the project with Maven first:
+
+```sh
+./mvnw clean package
+docker build -t nnls .
+```
+
+To target a specific processor architecture (for example, `linux/amd64` from an Apple Silicon Mac):
+
+```sh
+docker build --platform linux/amd64 -t nnls .
+```
+
+### Publish to GitHub Container Registry (`ghcr.io`)
+
+1. **Create a token** on GitHub: **Settings** > **Developer settings** > **Personal access tokens** > **Tokens (classic)**, with the `write:packages` scope.
+2. **Log in, tag (in lowercase), and push:**
+
+```sh
+docker login ghcr.io -u <username>
+docker tag nnls ghcr.io/<username>/nnls:1.0
+docker push ghcr.io/<username>/nnls:1.0
+```
+
+Or build and push a multi-architecture image directly with `buildx`:
+
+```sh
+docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/<username>/nnls:1.0 --push .
+```
+
+3. **Make the package public** on GitHub (`https://github.com/<username>?tab=packages` > **Package settings** > **Danger Zone** > **Change visibility** > **Public**) so anyone can pull and run it.
+
+### Alternative: Pull Latest CI Images (`main` / `develop`)
+
+Every push to `main` or `develop` runs the [CI workflow](.github/workflows/ci.yml), which fails if any JUnit test fails and otherwise publishes the latest multi-architecture Docker image to GHCR (as well as the `nnls-jar` build artifact in GitHub Actions):
+
+```sh
+# Latest image from main (also tagged :main)
+docker pull ghcr.io/neliott/nnls:latest
+docker run --rm ghcr.io/neliott/nnls:latest
+
+# Latest image from develop
+docker pull ghcr.io/neliott/nnls:develop
+docker run --rm ghcr.io/neliott/nnls:develop
+```
+
+You can also use `ghcr.io/neliott/nnls:main` or `ghcr.io/neliott/nnls:develop` in [compose.yaml](compose.yaml) instead of `ghcr.io/neliott/nnls:latest`.
+
+### Run Server and Clients with Docker Compose
+
+An example Compose configuration is provided in [compose.yaml](compose.yaml) (starting a `server` and a `client` connected on Compose's default network). From the repository root:
+
+```sh
+docker compose up -d
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
+---
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on code style, commit conventions, and our workflow.

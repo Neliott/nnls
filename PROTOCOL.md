@@ -23,7 +23,7 @@ Instead of transmitting entire files upon each edit, NNLSP exchanges incremental
   * Parameters are space-separated.
   * JSON payloads **must be compact (single-line, unformatted)** and **must not contain any raw newline or carriage return characters** (`\n` or `\r`). Each line of the synchronized file is represented as a separate string element within the `lines` array. So, the `\n` byte exclusively and unambiguously marks the end of a message.
   * Empty lines are ignored.
-* **Connection Lifecycle:** The client can terminate the session using `QUIT`. If a connection drops unexpectedly, the server automatically cleans up the client's session and frees associated room references.
+* **Connection Lifecycle:** An explicit `QUIT` command (`QUIT` -> `BYE`) distinguishes an intentional client termination from an unexpected network drop (where the TCP stream reaches EOF without `QUIT`). In both cases, the server cleans up the client's session and frees associated room references, while `QUIT` allows the server to log and close the connection cleanly.
 
 ---
 
