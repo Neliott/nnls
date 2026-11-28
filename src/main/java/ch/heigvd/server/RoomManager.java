@@ -1,21 +1,23 @@
 package ch.heigvd.server;
 
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
+/** Thread-safe {@link RoomRegistry} managing active rooms by 5-character alphanumeric codes. */
 public class RoomManager implements RoomRegistry {
     private static final int ID_LENGTH = 5;
     private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-    private ConcurrentHashMap <String, Room> rooms;
+    private final ConcurrentHashMap<String, Room> rooms;
 
-    public RoomManager(){
+    /** Creates an empty room manager. */
+    public RoomManager() {
         this.rooms = new ConcurrentHashMap<>();
     }
 
-    public SyncRoom createRoom(String filename){
+    @Override
+    public SyncRoom createRoom(String filename) {
         String id;
         Room room;
         do {
@@ -30,11 +32,12 @@ public class RoomManager implements RoomRegistry {
         return Optional.ofNullable(rooms.get(roomCode));
     }
 
-    public void removeRoom(String roomId){
-        rooms.remove(roomId);
+    /** Removes a room by its code, returning {@code true} if it existed. */
+    public boolean removeRoom(String roomId) {
+        return rooms.remove(roomId) != null;
     }
 
-    private String getRandomUniqueID(){
+    private String getRandomUniqueID() {
         String id;
         StringBuilder sb = new StringBuilder(ID_LENGTH);
         do {
